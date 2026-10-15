@@ -1,0 +1,127 @@
+{
+ "_poznamka": "Ruční údaje, compute_stats.py je jen čte. brand_color = oficiální barva podle manuálu strany/frakce, vždy s brand_source; null = neznámá (web pak použije chart_color). chart_color = barva webu pro grafy a tečky, zvolená jen kvůli rozlišitelnosti, nejde o barvu strany. Loga jsou v logos.json. _nazev slouží jen pro orientaci.",
+ "groups": {
+  "ECR": {
+   "_nazev": "ECR",
+   "brand_color": null,
+   "brand_source": null,
+   "chart_color": "#6366F1"
+  },
+  "EPP": {
+   "_nazev": "EPP",
+   "brand_color": null,
+   "brand_source": null,
+   "chart_color": "#3B82F6"
+  },
+  "ESN": {
+   "_nazev": "ESN",
+   "brand_color": null,
+   "brand_source": null,
+   "chart_color": "#0EA5E9"
+  },
+  "GREEN_EFA": {
+   "_nazev": "Greens/EFA",
+   "brand_color": null,
+   "brand_source": null,
+   "chart_color": "#14B8A6"
+  },
+  "GUE_NGL": {
+   "_nazev": "The Left",
+   "brand_color": null,
+   "brand_source": null,
+   "chart_color": "#BE123C"
+  },
+  "NI": {
+   "_nazev": "Non-attached",
+   "brand_color": null,
+   "brand_source": null,
+   "chart_color": "#94A3B8"
+  },
+  "PFE": {
+   "_nazev": "PfE",
+   "brand_color": null,
+   "brand_source": null,
+   "chart_color": "#A855F7"
+  },
+  "RENEW": {
+   "_nazev": "Renew",
+   "brand_color": null,
+   "brand_source": null,
+   "chart_color": "#F59E0B"
+  },
+  "SD": {
+   "_nazev": "S&D",
+   "brand_color": null,
+   "brand_source": null,
+   "chart_color": "#E11D48"
+  }
+ },
+ "parties": {
+  "6768": {
+   "_nazev": "ODS",
+   "brand_color": "#004494",
+   "brand_source": "https://www.ods.cz/docs/o-nas/ods-logomanual-web.pdf (Základní korporátní barevnost: RGB 0/68/148)",
+   "chart_color": "#1D4ED8"
+  },
+  "6769": {
+   "_nazev": "KSČM",
+   "brand_color": null,
+   "brand_source": null,
+   "chart_color": "#B91C1C"
+  },
+  "6770": {
+   "_nazev": "KDU-ČSL",
+   "brand_color": null,
+   "brand_source": null,
+   "chart_color": "#CA8A04"
+  },
+  "6793": {
+   "_nazev": "TOP09/STAN",
+   "brand_color": null,
+   "brand_source": null,
+   "chart_color": "#7C3AED"
+  },
+  "6794": {
+   "_nazev": "ANO 2011",
+   "brand_color": null,
+   "brand_source": null,
+   "chart_color": "#0891B2"
+  },
+  "6835": {
+   "_nazev": "STAN",
+   "brand_color": null,
+   "brand_source": null,
+   "chart_color": "#16A34A"
+  },
+  "6843": {
+   "_nazev": "Ind.",
+   "brand_color": null,
+   "brand_source": null,
+   "chart_color": "#94A3B8"
+  },
+  "6862": {
+   "_nazev": "PIR",
+   "brand_color": null,
+   "brand_source": null,
+   "chart_color": "#111827"
+  },
+  "6864": {
+   "_nazev": "SPD",
+   "brand_color": null,
+   "brand_source": null,
+   "chart_color": "#9A3412"
+  },
+  "7033": {
+   "_nazev": "PSH",
+   "brand_color": null,
+   "brand_source": null,
+   "chart_color": "#DB2777"
+  },
+  "7034": {
+   "_nazev": "AUTO",
+   "brand_color": null,
+   "brand_source": null,
+   "chart_color": "#4D7C0F"
+  }
+ }
+}

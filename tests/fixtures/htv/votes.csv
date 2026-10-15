@@ -1,0 +1,5 @@
+id,timestamp,display_title,reference,description,amendment_subject,amendment_number,is_main,procedure_reference,procedure_title,procedure_type,procedure_stage,count_for,count_against,count_abstention,count_did_not_vote,result,texts_adopted_reference
+1,2024-07-15 12:00:00,MOCK old term vote,,,,,True,,,,,1,1,1,1,ADOPTED,
+2,2024-07-17 09:00:00.250000,MOCK July vote,A10-0001/2024,§ 1,,,True,2024/0001(COD),MOCK procedure,COD,OLP_FIRST_READING,400,200,50,70,ADOPTED,P10_TA(2024)0001
+3,2024-09-16 17:00:00,MOCK September vote,,Am 4,,4,False,,,,,100,500,20,100,REJECTED,
+4,2024-09-18 12:00:00,MOCK no result,,,,,False,,,,,10,10,10,10,,

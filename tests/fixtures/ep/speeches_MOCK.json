@@ -1,0 +1,22 @@
+{"data": [
+ {"id": "eli/dl/event/MOCK-1", "type": "Activity", "activity_date": "2024-09-18", "activity_id": "MOCK-1",
+  "activity_start_date": "2024-09-18T09:44:51+02:00", "activity_end_date": "2024-09-18T09:46:48+02:00",
+  "had_activity_type": "def/ep-activities/PLENARY_DEBATE_SPEECH",
+  "had_participation": {"id": "p1", "type": "Participation", "had_participant_person": ["person/1"], "participation_role": "def/ep-roles/SPEAKER"},
+  "recorded_in_a_realization_of": [{"id": "eli/dl/doc/CRE-MOCK-1", "is_part_of": "eli/dl/doc/CRE-10-2024-09-18-ITM-002", "numbering": 16}]},
+ {"id": "eli/dl/event/MOCK-2", "type": "Activity", "activity_date": "2024-09-18", "activity_id": "MOCK-2",
+  "activity_start_date": "2024-09-18T10:00:00+02:00", "activity_end_date": "2024-09-18T10:01:00+02:00",
+  "had_activity_type": "def/ep-activities/PLENARY_DEBATE_SPEECH",
+  "had_participation": {"id": "p2", "type": "Participation", "had_participant_person": ["person/1"], "participation_role": "def/ep-roles/SPEAKER"},
+  "recorded_in_a_realization_of": [{"id": "eli/dl/doc/CRE-MOCK-2", "is_part_of": "eli/dl/doc/CRE-10-2024-09-18-ITM-002", "numbering": 17}]},
+ {"id": "eli/dl/event/MOCK-3", "type": "Activity", "activity_date": "2024-10-08", "activity_id": "MOCK-3",
+  "had_activity_type": "def/ep-activities/PLENARY_DEBATE_WRITTEN_STATEMENT",
+  "had_participation": {"id": "p3", "type": "Participation", "had_participant_person": ["person/1"], "participation_role": "def/ep-roles/SPEAKER"},
+  "recorded_in_a_realization_of": [{"id": "eli/dl/doc/CRE-MOCK-3", "is_part_of": "eli/dl/doc/CRE-10-2024-10-08-ITM-001"}]},
+ {"id": "eli/dl/event/MOCK-4", "type": "Activity", "activity_date": "2023-05-02", "activity_id": "MOCK-4",
+  "had_activity_type": "def/ep-activities/PLENARY_DEBATE_SPEECH",
+  "had_participation": {"id": "p4", "type": "Participation", "had_participant_person": ["person/1"], "participation_role": "def/ep-roles/SPEAKER"}},
+ {"id": "eli/dl/event/MOCK-5", "type": "Activity", "activity_date": "2025-11-05", "activity_id": "MOCK-5",
+  "had_activity_type": "def/ep-activities/PLENARY_DEBATE_SPEECH",
+  "had_participation": {"id": "p5", "type": "Participation", "had_participant_person": ["person/1"], "participation_role": "def/ep-roles/SPEAKER"}}
+], "meta": {"total": 5}}

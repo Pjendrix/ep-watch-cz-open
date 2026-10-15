@@ -1,0 +1,11 @@
+{
+ "note": "Ruční opravy jmen, která EP Open Data uvádí bez diakritiky. Každá oprava má zdroj. Skripty ji použijí jen tehdy, když jméno z EP odpovídá opravě bez diakritiky; jinak skončí chybou, aby se oprava zkontrolovala.",
+ "names": {
+  "256853": {
+   "given_name": "Klára",
+   "family_name": "Dostálová",
+   "note": "EP uvádí „Klara DOSTALOVA“. Podoba jména podle registru kandidátů ČSÚ pro volby do EP 2024 (kandidátka č. 14, pořadí 1, zvolena).",
+   "source": "https://www.volby.cz/opendata/ep2024/EP2024reg20240609_csv.zip"
+  }
+ }
+}

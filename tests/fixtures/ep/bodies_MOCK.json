@@ -1,0 +1,8 @@
+{
+ "10": {"identifier": "10", "label": "NI", "isVersionOf": "org/NI", "prefLabel": {"cs": "MOCK Nezařazení", "en": "MOCK Non-attached"}},
+ "11": {"identifier": "11", "label": "PfE", "isVersionOf": "org/PFE", "prefLabel": {"cs": "MOCK Patrioti", "en": "MOCK Patriots"}},
+ "12": {"identifier": "12", "label": "OLD", "isVersionOf": "org/OLD", "prefLabel": {"en": "MOCK old"}},
+ "20": {"identifier": "20", "label": "MOCK_P", "prefLabel": {"cs": "MOCK strana", "en": "MOCK party"}},
+ "30": {"identifier": "30", "label": "ENVI", "isVersionOf": "org/ENVI", "prefLabel": {"cs": "MOCK Výbor ENVI", "en": "MOCK ENVI"}},
+ "40": {"identifier": "40", "label": "D-XX", "prefLabel": {"en": "MOCK delegation"}}
+}

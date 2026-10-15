@@ -1,0 +1,13 @@
+{"data": [
+ {"id": "eli/dl/event/MTG-PL-2024-09-16", "type": "Activity", "activity_date": "2024-09-16", "activity_id": "MTG-PL-2024-09-16",
+  "had_activity_type": "def/ep-activities/PLENARY_SITTING", "parliamentary_term": "org/ep-10", "number_of_attendees": 4,
+  "had_participant_person": ["person/1", "person/2", "person/900", "person/901"], "had_excused_person": ["person/3"]},
+ {"id": "eli/dl/event/MTG-PL-2024-09-17", "type": "Activity", "activity_date": "2024-09-17", "activity_id": "MTG-PL-2024-09-17",
+  "had_activity_type": "def/ep-activities/PLENARY_SITTING", "parliamentary_term": "org/ep-10", "number_of_attendees": 2,
+  "had_participant_person": ["person/2", "person/900"], "had_excused_person": ["person/1"]},
+ {"id": "eli/dl/event/MTG-PL-2024-10-07", "type": "Activity", "activity_date": "2024-10-07", "activity_id": "MTG-PL-2024-10-07",
+  "had_activity_type": "def/ep-activities/PLENARY_SITTING", "parliamentary_term": "org/ep-10"},
+ {"id": "eli/dl/event/MTG-PL-2023-10-02", "type": "Activity", "activity_date": "2023-10-02", "activity_id": "MTG-PL-2023-10-02",
+  "had_activity_type": "def/ep-activities/PLENARY_SITTING", "parliamentary_term": "org/ep-9", "number_of_attendees": 3,
+  "had_participant_person": ["person/1"]}
+]}

@@ -1,0 +1,8 @@
+vote_id,member_id,position,country_code,group_code,group_short_label,national_party_id,national_party_short_label
+1,100,FOR,CZE,EPP,EPP,10,MOCK_A
+2,100,FOR,CZE,EPP,EPP,10,MOCK_A
+2,200,DID_NOT_VOTE,CZE,PFE,PfE,20,MOCK_B
+2,900,AGAINST,SVK,SD,S&D,90,MOCK_X
+3,100,ABSTENTION,CZE,EPP,EPP,10,MOCK_A
+3,200,AGAINST,CZE,NI,NI,,
+4,200,FOR,CZE,NI,NI,,
