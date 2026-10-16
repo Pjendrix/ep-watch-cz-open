@@ -5,6 +5,7 @@
   N nehlasoval, X v den hlasování nebyl v mandátu), strana a frakce k datu hlasování.
   Tečky = poslanci v mandátu v den nejnovějšího z pěti hlasování, pořadí pevné pro všech pět hlasování
   (frakce podle GROUP_ORDER, pak strana, pak příjmení), aby se při přepnutí jen přebarvily.
+  Téma (topics) ze stejné funkce jako čip v seznamu hlasování (categories_for).
 - facts: čísla pro pruh faktů, „tři cesty“ a „další pohledy“, všechna přečtená z existujících JSON.
 
 Nic se nepočítá nově kromě součtů; vstupy se ověří a při změně formátu skript skončí čitelnou chybou.
@@ -18,6 +19,7 @@ import sys
 from pathlib import Path
 
 from compute_stats import FormatError, load_votes, require
+from categories import LABEL as CAT_LABEL, categories_for
 from vote_kinds import FINAL_KINDS, KIND_LABELS, kind_of
 
 N_VOTES = 5
@@ -87,6 +89,8 @@ def build(data_dir: Path) -> dict:
         k = kind_of(v)
         out_votes.append({"id": v["id"], "date": v["date"], "month": v["date"][:7], "title": v["title"],
                           "kind": k, "kind_label": KIND_LABELS.get(k, k), "result": v.get("result"),
+                          # téma ze stejné funkce jako čip v seznamu hlasování (categories.py), první = hlavní
+                          "topics": [{"slug": c, "label": CAT_LABEL[c]} for c in categories_for(v)],
                           "counts": {c: sum(1 for x in ppl if x["pos"] == c) for c in "FABNX"}, "ppl": ppl})
 
     # --- čísla pro pruh faktů a další bloky (jen čtení existujících souborů) ---

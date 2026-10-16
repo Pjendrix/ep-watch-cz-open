@@ -550,6 +550,9 @@ def run(data_dir: Path, day: str) -> dict:
     head = json.dumps({k: v for k, v in search.items() if k != "rows"}, ensure_ascii=False, separators=(",", ":"))
     (data_dir / "votes" / "search.json").write_text(head[:-1] + ',"rows":[\n' + ",\n".join(lines) + "\n]}\n",
                                                     encoding="utf-8")
+    # Témata (kategorie) všech hlasování pro detail vote.html: stejná funkce jako čip v seznamu (categories_for), jen neprázdné.
+    write_json(data_dir / "vote_cats.json", {"note": "Klíče kategorií hlasování (scripts/categories.py), první = hlavní.",
+                                             "votes": {str(v["id"]): c for v in votes if (c := categories_for(v))}}, compact=True)
     return {"profiles": len(meps), "votes": len(votes)}
 
 
