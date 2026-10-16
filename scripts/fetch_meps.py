@@ -30,6 +30,7 @@ PROFILE_URL = "https://www.europarl.europa.eu/meps/cs/{id}"
 
 # EP API: max. 500 dotazů za 5 minut na endpoint. 0,7 s mezi dotazy = max. ~430.
 MIN_INTERVAL = 0.7
+TIMEOUT = 120  # sekund; detail dokumentu pléna trvá i desítky sekund
 
 ROLE_MANDATE = "def/ep-roles/MEMBER_PARLIAMENT"
 CLS_GROUP = "def/ep-entities/EU_POLITICAL_GROUP"
@@ -81,12 +82,20 @@ class EPClient:
 
     def get(self, path: str, params: dict | None = None) -> dict:
         url = f"{API}/{path}"
+        last = "bez odpovědi"
         for attempt in range(8):
             wait = self._last + self.min_interval - time.monotonic()
             if wait > 0:
                 time.sleep(wait)
             self._last = time.monotonic()
-            r = self.session.get(url, params={**FORMAT, **(params or {})}, timeout=60)
+            try:
+                r = self.session.get(url, params={**FORMAT, **(params or {})}, timeout=TIMEOUT)
+            except (requests.Timeout, requests.ConnectionError) as e:
+                # EP API u velkých dokumentů občas neodpoví včas: zkusit znovu, postupně déle
+                last = type(e).__name__
+                time.sleep(2 ** (attempt + 1))
+                continue
+            last = f"HTTP {r.status_code}"
             if r.status_code == 429:
                 # Limit se počítá za 5 minut: čekat podle Retry-After, jinak postupně déle (celkem ~10 min).
                 time.sleep(retry_after(r) or 30 * (attempt + 1))
@@ -99,7 +108,7 @@ class EPClient:
                 return r.json()
             except ValueError as e:
                 raise FormatError(f"{url}: odpověď není JSON") from e
-        raise RuntimeError(f"{url}: EP API opakovaně neodpovídá (poslední HTTP {r.status_code})")
+        raise RuntimeError(f"{url}: EP API opakovaně neodpovídá (naposledy {last})")
 
     def list_meps(self, term: int = TERM, country: str = COUNTRY, page: int = 50) -> list[dict]:
         out, offset = [], 0

@@ -159,3 +159,25 @@ def test_client_honours_retry_after(monkeypatch):
     monkeypatch.setattr(fm.time, "sleep", lambda s: slept.append(s))
     assert fm.EPClient(session=S(), min_interval=0).get("meps") == {"data": []}
     assert 7.0 in slept
+
+
+def test_client_retries_on_timeout_and_reports_last_error(monkeypatch):
+    """Timeout nebo výpadek spojení se zkouší znovu; když se nepovede ani na osmý pokus, chyba to řekne."""
+    import requests
+    calls = []
+
+    class S:
+        def __init__(self, fail):
+            self.fail = fail
+
+        def get(self, *a, **kw):
+            calls.append(1)
+            if len(calls) <= self.fail:
+                raise requests.Timeout("MOCK")
+            return FakeResponse({"data": []})
+
+    monkeypatch.setattr(fm.time, "sleep", lambda s: None)
+    assert fm.EPClient(session=S(2), min_interval=0).get("meps") == {"data": []}
+    calls.clear()
+    with pytest.raises(RuntimeError, match="Timeout"):
+        fm.EPClient(session=S(99), min_interval=0).get("meps")

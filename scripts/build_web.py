@@ -612,6 +612,10 @@ def main(argv=None) -> int:
         from build_home import build as build_home
         home = build_home(args.data_dir)
         (args.data_dir / "home.json").write_text(json.dumps(home, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+        # Radar „Co se chystá“ (data/radar.json): program zasedání a legislativní procedury s českou stopou.
+        import radar
+        (args.data_dir / "radar.json").write_text(json.dumps(radar.build(args.data_dir, args.today), ensure_ascii=False, indent=1) + "\n",
+                                                  encoding="utf-8")
     except FormatError as e:
         print(f"CHYBA FORMÁTU: {e}", file=sys.stderr)
         return 2

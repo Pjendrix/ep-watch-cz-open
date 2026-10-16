@@ -47,28 +47,44 @@ def test_group_and_next_session():
 
 
 def test_vote_items_only_votes_with_docs_and_order():
-    payload = {"data": [act(1, "2026-10-20", docs=["A-10-2026-0213", "C-10-2026-0001"], order="12"),
+    first = act(1, "2026-10-20", docs=["A-10-2026-0213", "C-10-2026-0001"], order="12")
+    first["occured_at_stage"] = "http://publications.europa.eu/resource/authority/procedure-phase/RDG1"
+    payload = {"data": [first,
                         act(2, "2026-10-20", typ="def/ep-activities/PLENARY_DEBATE"),
                         act(3, "2026-10-20", order=3)]}
     items = fa.vote_items(payload, "2026-10-20")
     assert [i["id"] for i in items] == ["MOCK-3", "MOCK-1"]
     assert items[1]["docs"] == ["A-10-2026-0213", "C-10-2026-0001"] and items[1]["legislative"]
     assert items[0]["docs"] == [] and not items[0]["legislative"]
+    assert items[1]["stage"] == "RDG1" and items[0]["stage"] is None
+
+
+def test_vote_items_commission_proposal_from_previous_term():
+    """Návrh Komise z 9. období (C-9-…) je taky legislativní dokument."""
+    items = fa.vote_items({"data": [act(1, "2026-10-20", docs=["C-9-2023-0192", "A-10-2025-0128"])]}, "2026-10-20")
+    assert items[0]["docs"] == ["C-9-2023-0192", "A-10-2025-0128"] and items[0]["legislative"]
 
 
 def test_vote_items_format_error():
     with pytest.raises(FormatError):
         fa.vote_items({"items": []}, "2026-10-20")
     with pytest.raises(FormatError):
-        fa.vote_items({"data": [{"activity_id": "x"}]}, "2026-10-20")
+        fa.vote_items({"data": [{"activity_id": "x", "had_activity_type": VOTE}]}, "2026-10-20")
 
 
 def test_build_and_write_if_changed(tmp_path):
     routes = {("meetings", 2026): {"data": [{"activity_id": "MTG-PL-2026-10-19"}, {"activity_id": "MTG-PL-2026-10-20"},
                                              {"activity_id": "MTG-COMMITTEE-x"}]},
               ("meetings/MTG-PL-2026-10-19/foreseen-activities", None): {"data": [act(1, "2026-10-19", docs=["A-10-2026-0001"])]},
-              ("meetings/MTG-PL-2026-10-20/foreseen-activities", None): {"data": []}}
-    doc = fa.build(FakeClient(routes), "2026-10-16")
+              ("meetings/MTG-PL-2026-10-20/foreseen-activities", None): {"data": []},
+              ("plenary-documents/A-10-2026-0001", None): {"data": [{
+                  "inverse_created_a_realization_of": ["eli/dl/proc/2026-0042"], "creator": ["org/ENVI", "person/1"]}]}}
+    client = FakeClient(routes)
+    doc = fa.build(client, "2026-10-16")
+    assert doc["docs"] == {"A-10-2026-0001": {"procedure": "2026-0042", "committee": "ENVI"}}
+    n = len(client.calls)
+    fa.build(client, "2026-10-16", doc["docs"])  # podruhé ze známých dokumentů, bez dotazu na zprávu
+    assert len(client.calls) == n + 3
     assert doc["sittings"] == ["2026-10-19", "2026-10-20"]
     assert doc["next"]["from"] == "2026-10-19" and len(doc["next"]["items"]) == 1
     out = tmp_path / "agenda.json"
@@ -118,3 +134,22 @@ def test_agenda_view_picks_trace_then_legislative_then_order():
 def test_agenda_view_without_program():
     assert ag.agenda_view(None, OWN, {}) is None
     assert ag.agenda_view({"next": None}, OWN, {}) is None
+
+
+def test_meeting_parts_without_date_are_skipped():
+    """Části schůze (MEETING_PART) datum mít nemusí; kontrola polí platí jen pro hlasovací body."""
+    part = {"activity_id": "MOCK-P", "had_activity_type": "def/ep-activities/MEETING_PART"}
+    assert fa.vote_items({"data": [part, act(1, "2026-10-20")]}, "2026-10-20")[0]["id"] == "MOCK-1"
+
+
+def test_empty_program_does_not_overwrite_previous(tmp_path, monkeypatch):
+    """API občas vrátí zasedání bez hlasovacích bodů: předchozí úplný program stejného zasedání zůstane."""
+    out = tmp_path / "agenda.json"
+    full = {"next": {"from": "2026-10-19", "to": "2026-10-22", "days": ["2026-10-19"], "items": [{"id": "MOCK-1"}]},
+            "docs": {}, "fetched": "2026-10-15"}
+    out.write_text(json.dumps(full), encoding="utf-8")
+    empty = {**full, "next": {**full["next"], "items": []}}
+    monkeypatch.setattr(fa, "EPClient", lambda: None)
+    monkeypatch.setattr(fa, "build", lambda client, today, docs=None: empty)
+    assert fa.main(["--out", str(out), "--today", "2026-10-16"]) == 3
+    assert json.loads(out.read_text())["next"]["items"] == [{"id": "MOCK-1"}]

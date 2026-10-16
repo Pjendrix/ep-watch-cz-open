@@ -35,6 +35,10 @@ TERM_START = "2024-07-16"
 DOC_URL = "https://www.europarl.europa.eu/doceo/document/{id}_EN.html"
 OEIL_URL = "https://oeil.secure.europarl.europa.eu/oeil/en/procedure-file?reference={label}"
 REFRESH_PROCEDURES_DAYS = 28
+# Rozpracované procedury s českou účastí (radar „Co se chystá“) se obnovují častěji: fáze a události se mění týdně.
+REFRESH_ACTIVE_DAYS = 7
+# Událost, po které je procedura uzavřená (podpis nebo vyhlášení v Úředním věstníku); current_stage z API to neukazuje.
+CLOSING_EVENTS = {"SIGNATURE", "PUBLICATION_OFFICIAL_JOURNAL"}
 
 DOC_KINDS = {
     "def/ep-document-types/REPORT_PLENARY": "report",
@@ -138,7 +142,42 @@ def parse_procedure(proc: dict, cz_ids: set[int]) -> dict | None:
         "title": title_of(proc, "process_title"), "participants": parts,
         "date": min((p["date"] for p in parts if p["date"]), default=None),
         "url": OEIL_URL.format(label=label) if label else None,
+        # pro radar „Co se chystá“: odpovědný výbor a události procedury (typ a datum, jak je vrací API)
+        "committee": lead_committee(proc),
+        "events": procedure_events(proc),
     }
+
+
+def lead_committee(proc: dict) -> str | None:
+    """Odpovědný výbor (role COMMITTEE_LEAD); bez něj výbor zpravodaje (RAPPORTEUR). Jinak None."""
+    parts = [p for p in as_list(proc.get("had_participation")) if isinstance(p, dict)]
+    for role, field in (("COMMITTEE_LEAD", "had_participant_organization"), ("RAPPORTEUR", "participation_in_name_of")):
+        for p in parts:
+            if short(p.get("participation_role")) == role:
+                orgs = [short(o) for o in as_list(p.get(field)) if o]
+                if orgs:
+                    return orgs[0]
+    return None
+
+
+def procedure_events(proc: dict) -> list[dict]:
+    """Události procedury [{date, type}] seřazené podle data, bez duplicit (API je vrací i vícekrát)."""
+    out = set()
+    for e in as_list(proc.get("consists_of")):
+        if not isinstance(e, dict):
+            raise FormatError(f"procedures/{proc.get('process_id')}: neočekávaná událost {e!r}")
+        if e.get("activity_date") and e.get("had_activity_type"):
+            out.add((str(e["activity_date"])[:10], short(e["had_activity_type"])))
+    return [{"date": d, "type": t} for d, t in sorted(out)]
+
+
+def is_active(item: dict | None) -> bool:
+    """Procedura s českou účastí, která ještě není uzavřená (nebo u ní ještě nemáme události)."""
+    if not item:
+        return False
+    if "events" not in item:
+        return True
+    return not any(e["type"] in CLOSING_EVENTS for e in item["events"])
 
 
 def question_label(identifier: str) -> str:
@@ -237,11 +276,17 @@ class Fetcher:
             ids.update(self.list_ids("procedures", year, key="process_id"))
         # Procedury, ze kterých vzešla zpráva 10. období (i ty starší, převzaté z 9. období).
         ids.update(m["procedure"] for m in self.state["documents"].values() if m.get("procedure"))
-        stale = (dt.date.fromisoformat(self.today) - dt.timedelta(days=REFRESH_PROCEDURES_DAYS)).isoformat()
-        # Nejdřív nestažené, pak nejdéle nestahované (stínoví zpravodajové přibývají v průběhu procedury).
-        order = sorted(ids, key=lambda i: (i in seen, seen.get(i, {}).get("fetched", ""), i))
+        day = dt.date.fromisoformat(self.today)
+        stale = (day - dt.timedelta(days=REFRESH_PROCEDURES_DAYS)).isoformat()
+        stale_active = (day - dt.timedelta(days=REFRESH_ACTIVE_DAYS)).isoformat()
+        active = {i for i in ids if is_active(self.items.get(f"proc-{i}"))}
+        # Nejdřív nestažené, pak rozpracované české (bez událostí jako první), pak nejdéle nestahované
+        # (stínoví zpravodajové přibývají v průběhu procedury).
+        order = sorted(ids, key=lambda i: (i in seen, i not in active, "events" in self.items.get(f"proc-{i}", {}),
+                                           seen.get(i, {}).get("fetched", ""), i))
         for proc_id in order:
-            if proc_id in seen and seen[proc_id]["fetched"] > stale:
+            limit = stale_active if proc_id in active else stale
+            if proc_id in seen and seen[proc_id]["fetched"] > limit and "events" in self.items.get(f"proc-{proc_id}", {"events": 1}):
                 continue
             proc = self.detail("procedures", proc_id)
             item = parse_procedure(proc, self.cz_ids)

@@ -2,7 +2,10 @@
 
 - GET /meetings?year=RRRR: plenární dny (MTG-PL-RRRR-MM-DD), i dopředu. Dny po sobě (mezera nejvýš 2 dny) = jedno zasedání.
 - GET /meetings/{id}/foreseen-activities: plánovaný program dne. Bereme jen body typu PLENARY_VOTE (hlasování):
-  český název, pořadí v programu a dokumenty, ke kterým se váže (A-10-… zpráva výboru, B-10-… návrh usnesení, C-10-… legislativní návrh).
+  český název, pořadí v programu, fáze procedury (occured_at_stage) a dokumenty, ke kterým se váže
+  (A-10-… zpráva výboru, B-10-… návrh usnesení, C-10-… / C-9-… legislativní návrh Komise).
+- GET /plenary-documents/{A-…}: procedura a odpovědný výbor zprávy (pro radar „Co se chystá“). Výsledek se drží
+  v souboru (pole docs), takže každá zpráva se dotazuje jen jednou.
 
 Program je návrh EP a může se změnit; web to tak i píše. Nic se nedopočítává: co API nemá, je null.
 Soubor se změní, jen když se změní obsah (datum stažení se pak nepřepisuje), aby denní běh necommitoval zbytečně.
@@ -25,7 +28,7 @@ from fetch_meps import EPClient, FormatError, require
 
 VOTE_TYPE = "def/ep-activities/PLENARY_VOTE"
 SITTING_RE = re.compile(r"^MTG-PL-(\d{4}-\d{2}-\d{2})$")
-DOC_RE = re.compile(r"(?:^|/)([A-Z]-\d{2}-\d{4}-\d{4})$")
+DOC_RE = re.compile(r"(?:^|/)([A-Z]-\d{1,2}-\d{4}-\d{4})$")
 
 
 def sittings_for_year(client: EPClient, year: int) -> list[str]:
@@ -62,9 +65,10 @@ def vote_items(payload: dict, day: str) -> list[dict]:
     require(payload, ["data"], f"foreseen-activities {day}")
     items = []
     for a in payload["data"]:
-        require(a, ["activity_id", "activity_date"], f"foreseen-activities {day}")
+        # jen hlasovací body; ostatní části programu (MEETING_PART, rozpravy) datum mít nemusí
         if a.get("had_activity_type") != VOTE_TYPE:
             continue
+        require(a, ["activity_id", "activity_date"], f"foreseen-activities {day}")
         label = a.get("activity_label") or {}
         if not isinstance(label, dict):
             raise FormatError(f"{a['activity_id']}: activity_label není slovník jazyků")
@@ -79,12 +83,32 @@ def vote_items(payload: dict, day: str) -> list[dict]:
             "order": float(order) if isinstance(order, (int, float, str)) and str(order).replace(".", "", 1).isdigit() else None,
             "title_cs": label.get("cs"), "title_en": label.get("en"),
             "docs": docs, "legislative": any(d.startswith("C-") for d in docs),
+            "stage": _short(a.get("occured_at_stage")),
         })
     items.sort(key=lambda x: (x["date"], x["order"] if x["order"] is not None else 1e9, x["id"]))
     return items
 
 
-def build(client: EPClient, today: str) -> dict:
+def _short(uri) -> str | None:
+    return str(uri).rsplit("/", 1)[-1] if uri else None
+
+
+def report_meta(client: EPClient, doc_id: str) -> dict:
+    """Procedura a odpovědný výbor zprávy A-…: {procedure, committee}; co API nemá, je None."""
+    d = client.get(f"plenary-documents/{doc_id}", {"language": "cs"})
+    require(d, ["data"], f"plenary-documents/{doc_id}")
+    if not d["data"]:
+        return {"procedure": None, "committee": None}
+    doc = d["data"][0]
+    procs = doc.get("inverse_created_a_realization_of") or []
+    procs = procs if isinstance(procs, list) else [procs]
+    creators = doc.get("creator") or []
+    creators = creators if isinstance(creators, list) else [creators]
+    orgs = [_short(c) for c in creators if str(c).startswith("org/")]
+    return {"procedure": _short(procs[0]) if procs else None, "committee": orgs[0] if orgs else None}
+
+
+def build(client: EPClient, today: str, known_docs: dict | None = None) -> dict:
     year = int(today[:4])
     days = sittings_for_year(client, year)
     if today[5:7] in ("11", "12"):  # na konci roku i kalendář dalšího roku
@@ -96,11 +120,17 @@ def build(client: EPClient, today: str) -> dict:
     if session:
         for d in session:
             items += vote_items(client.get(f"meetings/MTG-PL-{d}/foreseen-activities"), d)
+    docs = {}
+    for it in items:
+        for d in it["docs"]:
+            if d.startswith("A-") and d not in docs:
+                docs[d] = (known_docs or {}).get(d) or report_meta(client, d)
     return {
         "note": "Plenární dny a program hlasování nejbližšího zasedání (návrh programu EP, může se změnit). Generuje scripts/fetch_agenda.py.",
         "source": {"name": "EP Open Data API v2", "url": "https://data.europarl.europa.eu/api/v2/meetings", "license": "CC BY 4.0"},
         "sittings": sorted(set(days)),
         "next": {"from": session[0], "to": session[-1], "days": session, "items": items} if session else None,
+        "docs": dict(sorted(docs.items())),
     }
 
 
@@ -120,10 +150,18 @@ def main(argv=None) -> int:
     p.add_argument("--today", default=dt.datetime.now(dt.timezone.utc).date().isoformat())
     args = p.parse_args(argv)
     try:
-        doc = build(EPClient(), args.today)
+        old = json.loads(args.out.read_text(encoding="utf-8")) if args.out.exists() else {}
+        doc = build(EPClient(), args.today, old.get("docs"))
     except FormatError as e:
         print(f"CHYBA FORMÁTU: {e}", file=sys.stderr)
         return 2
+    prev = (old.get("next") or {}) if old else {}
+    nxt = doc["next"]
+    if nxt and not nxt["items"] and prev.get("from") == nxt["from"] and prev.get("items"):
+        # EP API občas vrátí program bez hlasovacích bodů; dřívější úplný program stejného zasedání se nepřepíše
+        print(f"CHYBA: API vrátilo program zasedání {nxt['from']} bez hlasování, předchozí stažení mělo "
+              f"{len(prev['items'])} bodů; soubor se nemění", file=sys.stderr)
+        return 3
     changed = write_if_changed(args.out, doc, args.today)
     nxt = doc["next"]
     print(f"program: {'beze změny' if not changed else 'uloženo'}; příští zasedání "
