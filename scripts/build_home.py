@@ -62,6 +62,8 @@ def build(data_dir: Path) -> dict:
     meps = {m["id"]: m for m in overview["meps"]}
     independent = {str(p["id"]) for p in parties if p.get("independent")}
 
+    roles_path = data_dir / "vote_roles.json"
+    roles = _read(roles_path)["votes"] if roles_path.exists() else {}
     newest = picked[0]
     by_id = {p["member_id"]: p for p in newest["cz_positions"]}
     seats = [m for m in overview["meps"] if _in_mandate(m, newest["date"])]
@@ -91,6 +93,9 @@ def build(data_dir: Path) -> dict:
                           "kind": k, "kind_label": KIND_LABELS.get(k, k), "result": v.get("result"),
                           # téma ze stejné funkce jako čip v seznamu hlasování (categories.py), první = hlavní
                           "topics": [{"slug": c, "label": CAT_LABEL[c]} for c in categories_for(v)],
+                          # česká stopa: zpravodaj / stínový zpravodaj zprávy (vote_roles.json z own_work)
+                          "trace": [{"mep_id": r["mep_id"], "name": _name(meps[r["mep_id"]]) if r["mep_id"] in meps else None, "role": r["role"]}
+                                    for r in roles.get(str(v["id"]), [])],
                           "counts": {c: sum(1 for x in ppl if x["pos"] == c) for c in "FABNX"}, "ppl": ppl})
 
     # --- čísla pro pruh faktů a další bloky (jen čtení existujících souborů) ---
@@ -119,8 +124,13 @@ def build(data_dir: Path) -> dict:
         "work": {"meps": work["totals"]["meps"], "speeches": work["totals"]["speeches"], "questions": work["totals"]["questions"],
                  "reports_lead": work["totals"]["reports_lead"], "updated": work["updated"]},
     }
+    # Program příštího zasedání (fetch_agenda.py) s českou stopou; bez programu None a blok se nezobrazí.
+    from agenda import agenda_view
+    agenda_path, own_path = data_dir / "agenda.json", data_dir / "own_work.json"
+    agenda = agenda_view(_read(agenda_path) if agenda_path.exists() else None,
+                         _read(own_path) if own_path.exists() else None, {m["id"]: _name(m) for m in overview["meps"]})
     return {"note": "Pět nejnovějších závěrečných hlasování (bez výběru) a čísla pro úvodní stránku. Generuje scripts/build_home.py.",
-            "votes": out_votes, "facts": facts}
+            "votes": out_votes, "facts": facts, "agenda": agenda}
 
 
 def main(argv=None) -> int:

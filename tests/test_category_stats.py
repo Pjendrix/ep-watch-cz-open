@@ -30,3 +30,12 @@ def test_mep_outside_mandate_is_not_counted():
     meps = {1: {"id": 1, "mandates": [{"start": "2024-07-16", "end": "2024-12-31"}]}}
     r = cs.category_stats([vote(1, ["3.70.01"], [(1, "FOR")])], meps)["categories"][0]
     assert r["cz_attendance"] == [0, 0]
+
+
+def test_final_trace_counts_only_final_votes_with_record():
+    votes = [vote(1, ["3.70"], [(1, "FOR")]), vote(2, ["3.70"], [(1, "FOR")], kind="amendment"),
+             vote(3, ["3.70"], [(1, "FOR")])]
+    rows = {r["key"]: r for r in cs.category_stats(votes, MEPS, {1, 2})["categories"]}
+    key = next(k for k, r in rows.items() if r["votes"] == 3)
+    assert rows[key]["final_trace"] == 1  # hlasování 2 je dílčí
+    assert "final_trace" not in cs.category_stats(votes, MEPS)["categories"][0]  # bez podkladu pole chybí

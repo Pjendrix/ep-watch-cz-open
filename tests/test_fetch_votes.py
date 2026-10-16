@@ -141,3 +141,14 @@ def test_lapsed_and_withdrawn_are_valid(csv_dir, tmp_path, result):
     edit(csv_dir, "votes", ",REJECTED,", f",{result},")
     months = fv.run(csv_dir, tmp_path / "out", release=None)
     assert {v["id"]: v["result"] for v in months["2024-09"]["votes"]}[3] == result
+
+
+def test_release_check(tmp_path):
+    """E1: nový export = známý tag, který se liší od dat v repu; neznámý tag běh nespouští."""
+    assert fv.release_is_new("2026-10-17", "2026-10-10")
+    assert not fv.release_is_new("2026-10-10", "2026-10-10")
+    assert not fv.release_is_new(None, "2026-10-10")
+    assert fv.release_is_new("2026-10-17", None)
+    assert fv.stored_release(tmp_path) is None
+    (tmp_path / "index.json").write_text('{"source": {"release": "2026-10-10"}}', encoding="utf-8")
+    assert fv.stored_release(tmp_path) == "2026-10-10"

@@ -100,7 +100,8 @@ def build_work_hub(own: dict, meps: list[dict], mep_info: dict[int, dict], speec
                                    if r["type"] == "speech" and in_mandate(m["mandates"], r["date"]))
     # naposledy přijaté zprávy s českou stopou (podle hlasování, jedna řádka na hlasování)
     by_vote: dict[int, dict] = {}
-    for i in adopted:
+    # pevné pořadí (množina řetězců se iteruje náhodně): vlastní zpráva před stínovou, aby číslo a název byly vždy ze zprávy
+    for i in sorted(adopted, key=lambda i: (reports[i]["type"] != LEAD, i)):
         r = reports[i]
         if not r.get("vote_id"):
             continue

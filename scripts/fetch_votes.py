@@ -88,6 +88,19 @@ def resolve_release_tag(session: requests.Session) -> str | None:
     return parts[1].split("/")[0]
 
 
+def stored_release(out_dir: Path) -> str | None:
+    """Tag releasu, ze kterého jsou data v repu (data/votes/index.json → source.release)."""
+    path = out_dir / "index.json"
+    if not path.exists():
+        return None
+    return ((json.loads(path.read_text(encoding="utf-8")).get("source") or {}).get("release"))
+
+
+def release_is_new(latest: str | None, stored: str | None) -> bool:
+    """Nový export = latest známe a liší se od uloženého. Neznámý latest (síť, změna GitHubu) není důvod spouštět běh."""
+    return bool(latest) and latest != stored
+
+
 def download(dest: Path) -> str | None:
     dest.mkdir(parents=True, exist_ok=True)
     with requests.Session() as s:
@@ -387,7 +400,17 @@ def main(argv=None) -> int:
     p.add_argument("--release", help="tag releasu pro --csv-dir (jinak null)")
     p.add_argument("--cache-dir", type=Path, default=root / ".cache" / "htv")
     p.add_argument("--out-dir", type=Path, default=root / "data" / "votes")
+    p.add_argument("--check-release", action="store_true",
+                   help="nic nestahuje, jen vypíše new=true|false (nový export HowTheyVote proti datům v repu)")
     args = p.parse_args(argv)
+
+    if args.check_release:
+        with requests.Session() as s:
+            latest = resolve_release_tag(s)
+        stored = stored_release(args.out_dir)
+        print(f"HowTheyVote: nejnovější export {latest}, v repu {stored}", file=sys.stderr)
+        print(f"new={'true' if release_is_new(latest, stored) else 'false'}")
+        return 0
 
     if args.csv_dir:
         csv_dir, release = args.csv_dir, args.release

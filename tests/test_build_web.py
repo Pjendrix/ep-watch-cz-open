@@ -242,3 +242,27 @@ def test_vote_roles_from_own_work():
     assert list(r) == ["9", "10"]
     assert [(x["mep_id"], x["role"]) for x in r["10"]] == [(1, "rapporteur"), (2, "shadow")]  # zpravodaj před stínovým
     assert r["9"][0]["role"] == "co" and bw.build_vote_roles(None) == {}
+
+
+def test_freshness():
+    agenda = {"sittings": ["2026-10-07", "2026-10-19", "2026-11-11"]}
+    f = bw.build_freshness("2026-10-10", agenda)
+    assert f["release"] == "2026-10-10" and f["sittings_after"] == ["2026-10-19", "2026-11-11"]
+    assert bw.build_freshness(None, agenda)["sittings_after"] == []
+    assert bw.build_freshness("2026-10-10", None)["sittings_after"] == []
+
+
+def test_party_reports_by_party_at_report_date():
+    meps = [{"id": 1, "parties": [{"org_id": "10", "start": "2024-07-16", "end": "2025-06-30"},
+                                  {"org_id": "20", "start": "2025-07-01", "end": None}]}]
+    own = {"source": {"name": "MOCK"}, "updated": "2026-10-16", "meps": {"1": {"items": [
+        {"type": "report", "id": "A-10-2025-0001", "label": "A10-0001/2025", "date": "2025-03-01", "role": "RAPPORTEUR",
+         "title": {"cs": "MOCK zpráva"}, "url": "https://example.org", "status": "ADOPTED", "vote_id": 5},
+        {"type": "report", "id": "A-10-2026-0002", "label": "A10-0002/2026", "date": "2026-02-01", "role": "RAPPORTEUR_CO",
+         "title": {"cs": "MOCK druhá"}, "url": None, "status": "no_vote", "vote_id": None},
+        {"type": "shadow_report", "id": "proc-x", "date": "2025-01-01"},
+        {"type": "motion", "id": "B-10-2025-0001", "date": "2025-01-01"}]}}}
+    old, new = bw.party_reports("10", meps, own), bw.party_reports("20", meps, own)
+    assert [r["label"] for r in old["items"]] == ["A10-0001/2025"] and old["shadow_count"] == 1
+    assert [(r["label"], r["role"]) for r in new["items"]] == [("A10-0002/2026", "co")] and new["shadow_count"] == 0
+    assert bw.party_reports("10", meps, None) is None

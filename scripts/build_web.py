@@ -379,7 +379,30 @@ def build_agreement(meps: list[dict], stats: dict, day: str) -> dict:
     }
 
 
-def build_parties_web(stats: dict, parties: list[dict], meps: list[dict], votes_by_id: dict, day: str) -> tuple:
+def party_reports(pid: str, meps: list[dict], own: dict | None) -> dict | None:
+    """Zprávy, které vedli poslanci strany (D6): zpravodaj/ka nebo spoluzpravodaj/ka podle own_work.json a počet stínových zpráv.
+    Strana se bere k datu zprávy (období ve straně podle EP), bez pořadí a bez hodnocení. Bez own_work.json None."""
+    if not own:
+        return None
+    in_party = lambda m, d: bool(d) and any(p["org_id"] == pid and p["start"] <= d and (not p.get("end") or d <= p["end"])
+                                            for p in m["parties"])
+    reports, shadow = [], 0
+    for m in meps:
+        for it in (own["meps"].get(str(m["id"])) or {}).get("items", []):
+            if it.get("type") not in ("report", "shadow_report") or not in_party(m, it.get("date")):
+                continue
+            if it["type"] == "shadow_report":
+                shadow += 1
+                continue
+            reports.append({"mep_id": m["id"], "role": "co" if it.get("role") == "RAPPORTEUR_CO" else "rapporteur",
+                            "label": it.get("label"), "title_cs": (it.get("title") or {}).get("cs"), "url": it.get("url"),
+                            "date": it["date"], "status": it.get("status"), "vote_id": it.get("vote_id")})
+    reports.sort(key=lambda r: (r["date"], r["label"] or ""), reverse=True)
+    return {"items": reports, "shadow_count": shadow, "source": own["source"], "updated": own.get("updated")}
+
+
+def build_parties_web(stats: dict, parties: list[dict], meps: list[dict], votes_by_id: dict, day: str,
+                      own: dict | None = None) -> tuple:
     meps_by_id = {m["id"]: m for m in meps}
     index, pages = [], {}
     for party in parties:
@@ -401,7 +424,7 @@ def build_parties_web(stats: dict, parties: list[dict], meps: list[dict], votes_
                                   "positions": [p for p in cz_positions(votes_by_id[vid], meps_by_id)
                                                 if str(p["national_party_id"]) == pid]}
         pages[pid] = {**summary, "sources": stats["sources"], "definitions": stats["definitions"],
-                      "member_list": members,
+                      "member_list": members, "reports": party_reports(pid, meps, own),
                       "splits": [split_item(v) for v in st["splits"]["recent"]],
                       "splits_main": [split_item(v) for v in st["splits"]["recent_main"]]}
     return {"sources": stats["sources"], "parties": index}, pages
@@ -454,6 +477,20 @@ def mep_votes(mep: dict, votes: list[dict]) -> dict:
                 letters.append(POSITION_LETTER[p["position"]])
                 break
     return {"ids": ids, "positions": "".join(letters)}
+
+
+STALE_DAYS = 14
+
+
+def build_freshness(release: str | None, agenda: dict | None) -> dict:
+    """Podklad pro pruh „data mohou být neaktuální“ (rozhodnutí autora 16. 10. 2026): datum exportu a plenární dny po něm.
+    Prohlížeč pruh ukáže, když je export starší než STALE_DAYS dní a od té doby už nějaké zasedání proběhlo
+    (bez zasedání nová hlasování být nemohou, stará data jsou pak aktuální)."""
+    day = release[:10] if release and len(release) >= 10 else None
+    sittings = (agenda or {}).get("sittings") or []
+    return {"note": "Datum exportu hlasování a plenární dny po něm (EP Open Data API). Generuje scripts/build_web.py.",
+            "release": day, "stale_days": STALE_DAYS,
+            "sittings_after": sorted(d for d in sittings if day and d > day)}
 
 
 def write_json(path: Path, obj, compact: bool = False) -> None:
@@ -530,7 +567,8 @@ def run(data_dir: Path, day: str) -> dict:
     if "votes_analysis" in stats:
         write_json(data_dir / "decisive.json", build_decisive(stats, votes_by_id, by_id))
         write_json(data_dir / "splits.json", build_splits(stats, votes_by_id, by_id))
-        write_json(data_dir / "category_stats.json", {**category_stats(votes, by_id), "sources": stats["sources"]})
+        write_json(data_dir / "category_stats.json", {**category_stats(
+            votes, by_id, {int(k) for k in build_vote_roles(own)} if own else None), "sources": stats["sources"]})
         write_json(data_dir / "categories.json", {k: {"label": n, "icon": icon_inner(k)} for k, n, _ in CATEGORIES})
         write_json(data_dir / "session.json", build_session(stats, votes, votes_by_id, by_id))
         gw_path, groups_path = data_dir / "group_web.json", data_dir / "groups.json"
@@ -540,7 +578,7 @@ def run(data_dir: Path, day: str) -> dict:
             write_json(data_dir / "eugroups" / "index.json", eu_index)
             for code, page in eu_pages.items():
                 write_json(data_dir / "eugroups" / f"{code}.json", page)
-        party_index, party_pages = build_parties_web(stats, parties, meps, votes_by_id, day)
+        party_index, party_pages = build_parties_web(stats, parties, meps, votes_by_id, day, own)
         write_json(data_dir / "parties" / "index.json", party_index)
         for pid, page in party_pages.items():
             write_json(data_dir / "parties" / f"{pid}.json", page)
@@ -553,6 +591,10 @@ def run(data_dir: Path, day: str) -> dict:
     # Témata (kategorie) všech hlasování pro detail vote.html: stejná funkce jako čip v seznamu (categories_for), jen neprázdné.
     write_json(data_dir / "vote_cats.json", {"note": "Klíče kategorií hlasování (scripts/categories.py), první = hlavní.",
                                              "votes": {str(v["id"]): c for v in votes if (c := categories_for(v))}}, compact=True)
+    agenda_path = data_dir / "agenda.json"
+    write_json(data_dir / "freshness.json", build_freshness(
+        stats["sources"].get("votes", {}).get("release"),
+        json.loads(agenda_path.read_text(encoding="utf-8")) if agenda_path.exists() else None))
     return {"profiles": len(meps), "votes": len(votes)}
 
 
