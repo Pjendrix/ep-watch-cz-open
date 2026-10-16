@@ -563,6 +563,10 @@ def main(argv=None) -> int:
     args = p.parse_args(argv)
     try:
         res = run(args.data_dir, args.today)
+        # Úvodní stránka (data/home.json): pět nejnovějších závěrečných hlasování a čísla pro pruh faktů.
+        from build_home import build as build_home
+        home = build_home(args.data_dir)
+        (args.data_dir / "home.json").write_text(json.dumps(home, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     except FormatError as e:
         print(f"CHYBA FORMÁTU: {e}", file=sys.stderr)
         return 2
