@@ -1,6 +1,6 @@
 # EP Watch CZ – výpočty
 
-Otevřené skripty a testy projektu **[EP Watch CZ](https://european-stasisticz.vercel.app)**: web o práci 21 českých europoslanců
+Otevřené skripty a testy projektu **[EP Watch CZ](https://epwatch.cz)**: web o práci 21 českých europoslanců
 v 10. volebním období (od 16. 7. 2024). Všechna čísla na webu počítá kód z tohoto repozitáře, ne AI, a dá se ověřit.
 
 ## Co tu je
