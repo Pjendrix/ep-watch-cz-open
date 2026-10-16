@@ -208,8 +208,9 @@ def parse_question(q: dict, cz_ids: set[int]) -> dict | None:
 
 class Fetcher:
     def __init__(self, client: EPClient, cz_ids: set[int], state: dict, items: dict, max_requests: int, today: str,
-                 save=None, deadline: float | None = None, log=None):
+                 save=None, deadline: float | None = None, log=None, voted: set[str] | None = None):
         self.client, self.cz_ids, self.state, self.items = client, cz_ids, state, items
+        self.voted = voted or set()  # procedury (2023-0436), o kterých se hlasovalo podle HowTheyVote
         self.left, self.today, self.save = max_requests, today, save or (lambda: None)
         self.deadline, self.log = deadline, log or (lambda msg: None)
         self.done_since_save = 0
@@ -280,13 +281,17 @@ class Fetcher:
         stale = (day - dt.timedelta(days=REFRESH_PROCEDURES_DAYS)).isoformat()
         stale_active = (day - dt.timedelta(days=REFRESH_ACTIVE_DAYS)).isoformat()
         active = {i for i in ids if is_active(self.items.get(f"proc-{i}"))}
-        # Nejdřív nestažené, pak rozpracované české (bez událostí jako první), pak nejdéle nestahované
-        # (stínoví zpravodajové přibývají v průběhu procedury).
-        order = sorted(ids, key=lambda i: (i in seen, i not in active, "events" in self.items.get(f"proc-{i}", {}),
-                                           seen.get(i, {}).get("fetched", ""), i))
+        # Procedury, o kterých se hlasovalo, potřebují český název (web ho ukazuje místo anglického z HowTheyVote).
+        no_title = {i for i in self.voted if not seen.get(i, {}).get("title_cs")}
+        ids |= no_title
+        # Nejdřív nestažené, pak rozpracované české bez událostí, pak hlasované bez českého názvu, pak rozpracované
+        # české a nakonec nejdéle nestahované (stínoví zpravodajové přibývají v průběhu procedury).
+        order = sorted(ids, key=lambda i: (i in seen, not (i in active and "events" not in self.items.get(f"proc-{i}", {})),
+                                           i not in no_title, i not in active, seen.get(i, {}).get("fetched", ""), i))
         for proc_id in order:
             limit = stale_active if proc_id in active else stale
-            if proc_id in seen and seen[proc_id]["fetched"] > limit and "events" in self.items.get(f"proc-{proc_id}", {"events": 1}):
+            if (proc_id in seen and seen[proc_id]["fetched"] > limit and proc_id not in no_title
+                    and "events" in self.items.get(f"proc-{proc_id}", {"events": 1})):
                 continue
             proc = self.detail("procedures", proc_id)
             item = parse_procedure(proc, self.cz_ids)
@@ -296,7 +301,8 @@ class Fetcher:
                 self.items[key] = item
             else:
                 self.items.pop(key, None)
-            seen[proc_id] = {"fetched": self.today, "label": proc.get("label")}
+            seen[proc_id] = {"fetched": self.today, "label": proc.get("label"),
+                             "title_cs": title_of(proc, "process_title").get("cs")}
             self.checkpoint()
 
     def questions(self, years: list[int]) -> None:
@@ -319,6 +325,18 @@ class Fetcher:
             self.items[item["id"]] = item
         self.state["questions"][q_id] = {"fetched": self.today}
         self.checkpoint()
+
+
+def voted_procedures(votes_dir: Path) -> set[str]:
+    """Procedury z hlasování HowTheyVote (2023/0436(COD) -> 2023-0436); bez dat prázdná množina."""
+    index = load(votes_dir / "index.json", None)
+    out = set()
+    for m in (index or {}).get("months", []):
+        for v in load(votes_dir / f"{m['month']}.json", {"votes": []})["votes"]:
+            ref = (v.get("procedure") or {}).get("reference")
+            if ref and len(ref) >= 9 and ref[4] == "/":
+                out.add(ref[:9].replace("/", "-"))
+    return out
 
 
 def load(path: Path, default):
@@ -347,6 +365,10 @@ def main(argv=None) -> int:
     cz_ids = {m["id"] for m in meps}
     state_path, items_path = args.data_dir / "proposals_state.json", args.data_dir / "proposals.json"
     state = load(state_path, {"documents": {}, "procedures": {}, "questions": {}})
+    # Jednorázově stažené české názvy (data/procedure_titles_cs.json): procedury s názvem se znovu nestahují kvůli názvu.
+    for pid, meta in load(args.data_dir / "procedure_titles_cs.json", {"titles": {}})["titles"].items():
+        if pid in state["procedures"] and not state["procedures"][pid].get("title_cs") and meta.get("title_cs"):
+            state["procedures"][pid]["title_cs"] = meta["title_cs"]
     items = {i["id"]: i for i in load(items_path, {"items": []})["items"]}
 
     def save():
@@ -362,7 +384,7 @@ def main(argv=None) -> int:
     client = EPClient(cache_dir=root / ".cache" / "ep" / "corporate-bodies", min_interval=0.8)
     deadline = time.monotonic() + args.max_minutes * 60 if args.max_minutes else None
     fetcher = Fetcher(client, cz_ids, state, items, args.max_requests, today.isoformat(), save, deadline,
-                      log=lambda msg: print(msg, file=sys.stderr, flush=True))
+                      log=lambda msg: print(msg, file=sys.stderr, flush=True), voted=voted_procedures(args.data_dir / "votes"))
     complete = True
     try:
         for part in args.only:

@@ -366,3 +366,35 @@ def test_independent_has_no_party_majority():
     a = {**pos(1, "AGAINST"), "national_party_id": 9, "national_party": cs.INDEPENDENT}
     b = {**pos(2, "AGAINST"), "national_party_id": 9, "national_party": cs.INDEPENDENT}
     assert cs.party_majority(a, [a, b]) is None
+
+
+def test_czech_titles_from_ep_open_data(tmp_path):
+    """Český název hlasování = oficiální název procedury z EP Open Data (stav fetch_proposals i položky s českou účastí)."""
+    import json as _json
+    (tmp_path / "proposals_state.json").write_text(_json.dumps({"procedures": {
+        "2023-0436": {"label": "2023/0436(COD)", "title_cs": "MOCK Práva cestujících"},
+        "2025-0803": {"label": ["2025/0803(CNS)", "2025/0803(NLE)"], "title_cs": "MOCK dva štítky"},
+        "2024-0001": {"label": "2024/0001(COD)"}}}), encoding="utf-8")
+    (tmp_path / "proposals.json").write_text(_json.dumps({"items": [
+        {"kind": "procedure", "label": "2024/0002(COD)", "title": {"cs": "MOCK z položek", "en": None}}]}), encoding="utf-8")
+    titles = cs.procedure_titles(tmp_path)
+    assert titles == {"2023/0436(COD)": "MOCK Práva cestujících", "2025/0803(CNS)": "MOCK dva štítky",
+                      "2025/0803(NLE)": "MOCK dva štítky", "2024/0002(COD)": "MOCK z položek"}
+    votes = [{"id": 1, "title": "MOCK EN", "procedure": {"reference": "2023/0436(COD)"}},
+             {"id": 2, "title": "MOCK bez procedury", "procedure": {"reference": None}},
+             {"id": 3, "title": "MOCK bez názvu", "procedure": {"reference": "2024/0001(COD)"}}]
+    cs.apply_titles(votes, titles)
+    assert votes[0]["title_cs"] == "MOCK Práva cestujících" and "title_cs" not in votes[1] and "title_cs" not in votes[2]
+    assert cs.procedure_titles(tmp_path / "nic") == {}
+
+
+def test_czech_titles_seed_file(tmp_path):
+    """Jednorázově stažené názvy (procedure_titles_cs.json) platí, než je doplní denní běh; stav má přednost."""
+    import json as _json
+    (tmp_path / "procedure_titles_cs.json").write_text(_json.dumps({"titles": {
+        "2023-0436": {"label": "2023/0436(COD)", "title_cs": "MOCK ze seznamu"},
+        "2024-0009": {"label": "2024/0009(COD)", "title_cs": "MOCK jen seznam"}}}), encoding="utf-8")
+    (tmp_path / "proposals_state.json").write_text(_json.dumps({"procedures": {
+        "2023-0436": {"label": "2023/0436(COD)", "title_cs": "MOCK ze stavu"}}}), encoding="utf-8")
+    titles = cs.procedure_titles(tmp_path)
+    assert titles == {"2023/0436(COD)": "MOCK ze stavu", "2024/0009(COD)": "MOCK jen seznam"}

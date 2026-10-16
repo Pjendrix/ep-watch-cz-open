@@ -46,7 +46,7 @@ def _compact(v: dict, meps_by_id: dict) -> dict:
     cz = active_positions(v, meps_by_id)
     c = v["counts"]
     return {"id": v["id"], "date": v["date"], "month": v["date"][:7],
-            "title": v.get("title") or (v.get("procedure") or {}).get("title") or v.get("reference"),
+            "title": v.get("title_cs") or v.get("title") or (v.get("procedure") or {}).get("title") or v.get("reference"),
             "vote_kind": kind, "result": v.get("result"),
             "counts": {"for": c["for"], "against": c["against"], "abstention": c["abstention"]},
             "cz": [sum(p["position"] == k for p in cz) for k in ("FOR", "AGAINST", "ABSTENTION", "DID_NOT_VOTE")],

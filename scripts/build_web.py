@@ -59,7 +59,8 @@ def current(items: list[dict], day: str) -> dict | None:
 
 
 def vote_title(v: dict) -> str:
-    return v.get("title") or (v.get("procedure") or {}).get("title") or v.get("reference") or f"Hlasování {v['id']}"
+    """Oficiální český název procedury (title_cs z EP Open Data), jinak anglický název z HowTheyVote."""
+    return v.get("title_cs") or v.get("title") or (v.get("procedure") or {}).get("title") or v.get("reference") or f"Hlasování {v['id']}"
 
 
 def kind_fields(v: dict) -> dict:
@@ -591,6 +592,11 @@ def run(data_dir: Path, day: str) -> dict:
     # Témata (kategorie) všech hlasování pro detail vote.html: stejná funkce jako čip v seznamu (categories_for), jen neprázdné.
     write_json(data_dir / "vote_cats.json", {"note": "Klíče kategorií hlasování (scripts/categories.py), první = hlavní.",
                                              "votes": {str(v["id"]): c for v in votes if (c := categories_for(v))}}, compact=True)
+    # Český název procedury pro detail hlasování v prohlížeči (vote.html čte surová data hlasování).
+    write_json(data_dir / "titles_cs.json", {
+        "note": "Oficiální české názvy procedur z EP Open Data API (fetch_proposals.py), jen procedury, o kterých se hlasovalo.",
+        "titles": dict(sorted({ref: v["title_cs"] for v in votes if v.get("title_cs")
+                               for ref in [(v.get("procedure") or {}).get("reference")] if ref}.items()))}, compact=True)
     agenda_path = data_dir / "agenda.json"
     write_json(data_dir / "freshness.json", build_freshness(
         stats["sources"].get("votes", {}).get("release"),

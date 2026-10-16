@@ -154,3 +154,30 @@ def test_deadline_stops_run():
     f.deadline = 0  # už vypršel
     with pytest.raises(fp.Budget):
         f.documents([2025])
+
+
+def test_voted_procedures_get_czech_title_first(tmp_path):
+    """Procedury, o kterých se hlasovalo a nemají český název, se stáhnou i když jsou jinak čerstvé; název se uloží do stavu."""
+    routes = {
+        "procedures": [{"process_id": "2025-0001"}],
+        "procedures/2025-0001": {"process_id": "2025-0001", "label": "2025/0001(COD)", "process_title": {"cs": "MOCK nový"}},
+        "procedures/2023-0436": {"process_id": "2023-0436", "label": "2023/0436(COD)", "process_title": {"cs": "MOCK starší"}},
+    }
+    state = {"documents": {}, "questions": {}, "procedures": {
+        "2025-0001": {"fetched": "2026-10-13", "label": "2025/0001(COD)", "title_cs": "MOCK nový"}}}
+    fetcher, client = make_fetcher(routes, state)
+    fetcher.voted = {"2023-0436", "2025-0001"}
+    fetcher.procedures([2025])
+    assert "procedures/2023-0436" in client.calls and "procedures/2025-0001" not in client.calls
+    assert state["procedures"]["2023-0436"]["title_cs"] == "MOCK starší"
+
+
+def test_voted_procedures_from_votes(tmp_path):
+    import json
+    votes = tmp_path / "votes"
+    votes.mkdir()
+    (votes / "index.json").write_text(json.dumps({"months": [{"month": "2026-10"}]}), encoding="utf-8")
+    (votes / "2026-10.json").write_text(json.dumps({"votes": [
+        {"procedure": {"reference": "2023/0436(COD)"}}, {"procedure": {"reference": None}}, {"procedure": {}}]}), encoding="utf-8")
+    assert fp.voted_procedures(votes) == {"2023-0436"}
+    assert fp.voted_procedures(tmp_path / "nic") == set()

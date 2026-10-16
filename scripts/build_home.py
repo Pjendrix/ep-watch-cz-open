@@ -89,7 +89,7 @@ def build(data_dir: Path) -> dict:
                         "group": (p.get("group_code") if p else None),
                         "pos": POS_CODE[p["position"]] if p else "X"})
         k = kind_of(v)
-        out_votes.append({"id": v["id"], "date": v["date"], "month": v["date"][:7], "title": v["title"],
+        out_votes.append({"id": v["id"], "date": v["date"], "month": v["date"][:7], "title": v.get("title_cs") or v["title"],
                           "kind": k, "kind_label": KIND_LABELS.get(k, k), "result": v.get("result"),
                           # téma ze stejné funkce jako čip v seznamu hlasování (categories.py), první = hlavní
                           "topics": [{"slug": c, "label": CAT_LABEL[c]} for c in categories_for(v)],
