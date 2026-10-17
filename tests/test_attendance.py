@@ -19,7 +19,7 @@ def days():
 
 def test_only_term_days_with_register_and_only_czech_ids():
     d = days()
-    assert [x["date"] for x in d] == ["2024-09-16", "2024-09-17"]   # 2024-10-07 bez listiny, 2023 jiné období
+    assert [x["date"] for x in d] == ["2024-09-16", "2024-09-17"]  # 2024-10-07 bez listiny, 2023 jiné období
     assert d[0] == {"date": "2024-09-16", "attendees": 4, "present": [1, 2], "excused": [3]}
     assert d[1]["present"] == [2] and d[1]["excused"] == [1]
 
@@ -35,9 +35,9 @@ def test_missing_field_is_format_error():
 
 def test_count_presence_in_mandate_and_excused_separately():
     m = [{"start": "2024-07-16", "end": None}]
-    assert at.count_presence(days(), 1, m) == {"present": 1, "excused": 1, "days": 2}   # 17. 9. omluven, v listině nebyl
+    assert at.count_presence(days(), 1, m) == {"present": 1, "excused": 1, "days": 2}  # 17. 9. omluven, v listině nebyl
     assert at.count_presence(days(), 2, m) == {"present": 2, "excused": 0, "days": 2}
-    assert at.count_presence(days(), 3, m) == {"present": 0, "excused": 1, "days": 2}   # 17. 9. ani omluven
+    assert at.count_presence(days(), 3, m) == {"present": 0, "excused": 1, "days": 2}  # 17. 9. ani omluven
     # mandát začíná po prvním dni: počítá se jen 17. 9.
     assert at.count_presence(days(), 2, [{"start": "2024-09-17", "end": None}]) == {"present": 1, "excused": 0, "days": 1}
     # v listině i mezi omluvenými = přítomen, ne omluven

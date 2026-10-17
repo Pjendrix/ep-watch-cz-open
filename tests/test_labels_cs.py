@@ -26,18 +26,22 @@ CASES = [
     ("Après le considérant D - Am 1", "Za bodem odůvodnění D - PN 1"),
     ("Considérant R/2", "Bod odůvodnění R, 2. část"),
     ("Visa 3", "Právní východisko 3"),
-    ("Amendements de la commission compétente - vote séparé - Am 1/2",
-     "Pozměňovací návrhy příslušného výboru - oddělené hlasování - PN 1, 2. část"),
-    ("Amendements de la commission compétente - votes séparés - Am 1/2",
-     "Pozměňovací návrhy příslušného výboru - oddělená hlasování - PN 1, 2. část"),
-    ("Article 1 - alinéa 1 - point 2; Règlement (UE) 2021/1119 - Article 4 - paragraphe 3 - Am 64S",
-     "Článek 1 - pododstavec 1 - bod 2; nařízení (EU) 2021/1119 - článek 4 - odstavec 3 - PN 64S"),
+    (
+        "Amendements de la commission compétente - vote séparé - Am 1/2",
+        "Pozměňovací návrhy příslušného výboru - oddělené hlasování - PN 1, 2. část",
+    ),
+    (
+        "Amendements de la commission compétente - votes séparés - Am 1/2",
+        "Pozměňovací návrhy příslušného výboru - oddělená hlasování - PN 1, 2. část",
+    ),
+    (
+        "Article 1 - alinéa 1 - point 2; Règlement (UE) 2021/1119 - Article 4 - paragraphe 3 - Am 64S",
+        "Článek 1 - pododstavec 1 - bod 2; nařízení (EU) 2021/1119 - článek 4 - odstavec 3 - PN 64S",
+    ),
     ("Après le §5 bis - Am 2", "Za odst. 5a - PN 2"),
     ("§ 4, après le tiret 2 - Am 7", "Odst. 4, za odrážkou 2 - PN 7"),
-    ("Demande de renvoi (article 200, paragraphe 2, du règlement)",
-     "Žádost o vrácení (čl. 200 odst. 2 jednacího řádu)"),
-    ("Annexe I - point 3 - sous-point b; Règlement (UE) nº 1/2020",
-     "Příloha I - bod 3 - podbod b; nařízení (EU) č. 1/2020"),
+    ("Demande de renvoi (article 200, paragraphe 2, du règlement)", "Žádost o vrácení (čl. 200 odst. 2 jednacího řádu)"),
+    ("Annexe I - point 3 - sous-point b; Règlement (UE) nº 1/2020", "Příloha I - bod 3 - podbod b; nařízení (EU) č. 1/2020"),
 ]
 
 
@@ -46,9 +50,10 @@ def test_translate(fr, cs):
     assert translate(fr) == cs
 
 
-@pytest.mark.parametrize("fr", ["Demande d'ajournement du groupe The Left",
-                                "Proposition de décision concernant la décharge (Frontex)",
-                                "Annexe, recommandation 1/2"])
+@pytest.mark.parametrize(
+    "fr",
+    ["Demande d'ajournement du groupe The Left", "Proposition de décision concernant la décharge (Frontex)", "Annexe, recommandation 1/2"],
+)
 def test_unknown_keeps_original(fr):
     assert translate(fr) is None  # nikdy polopřeklad
 

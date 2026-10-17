@@ -19,10 +19,19 @@ def category_stats(votes: list[dict], meps_by_id: dict, trace_ids: set[int] | No
     """{"categories": [{key, label, votes, final, cz_united_final: [x, z], cz_final: [pro, proti, zdržel, nehlasoval],
     cz_attendance: [hlasovali, celkem], final_trace}], "votes_total", "period"} v pořadí z CATEGORIES, „Bez tématu“ na konci.
     final_trace = závěrečná hlasování s českou stopou (trace_ids z vote_roles.json; bez podkladu se pole vynechá)."""
-    rows = {k: {"key": k, "label": n, "votes": 0, "final": 0, "cz_united_final": [0, 0], "cz_final": [0, 0, 0, 0],
-                "cz_attendance": [0, 0]} for k, n, _ in CATEGORIES}
-    rows[NONE_KEY] = {"key": NONE_KEY, "label": "Bez tématu", "votes": 0, "final": 0, "cz_united_final": [0, 0],
-                      "cz_final": [0, 0, 0, 0], "cz_attendance": [0, 0]}
+    rows = {
+        k: {"key": k, "label": n, "votes": 0, "final": 0, "cz_united_final": [0, 0], "cz_final": [0, 0, 0, 0], "cz_attendance": [0, 0]}
+        for k, n, _ in CATEGORIES
+    }
+    rows[NONE_KEY] = {
+        "key": NONE_KEY,
+        "label": "Bez tématu",
+        "votes": 0,
+        "final": 0,
+        "cz_united_final": [0, 0],
+        "cz_final": [0, 0, 0, 0],
+        "cz_attendance": [0, 0],
+    }
     for v in votes:
         keys = categories_for(v) or [NONE_KEY]
         active = active_positions(v, meps_by_id)
@@ -45,5 +54,8 @@ def category_stats(votes: list[dict], meps_by_id: dict, trace_ids: set[int] | No
     if trace_ids is not None:
         for r in out:
             r.setdefault("final_trace", 0)
-    return {"categories": out, "votes_total": len(votes),
-            "period": {"from": min((v["date"] for v in votes), default=None), "to": max((v["date"] for v in votes), default=None)}}
+    return {
+        "categories": out,
+        "votes_total": len(votes),
+        "period": {"from": min((v["date"] for v in votes), default=None), "to": max((v["date"] for v in votes), default=None)},
+    }

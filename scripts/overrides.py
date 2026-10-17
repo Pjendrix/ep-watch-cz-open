@@ -34,8 +34,7 @@ def apply_name_overrides(meps: list[dict], path: Path) -> int:
         new = f"{fix['given_name']} {fix['family_name']}"
         old = f"{m.get('given_name') or ''} {m.get('family_name') or ''}"
         if strip_accents(old) != strip_accents(new):
-            raise FormatError(f"{path.name}: poslanec {mid} má v EP jméno „{old.strip()}“, oprava „{new}“ "
-                              "k němu nesedí; zkontroluj opravu")
+            raise FormatError(f"{path.name}: poslanec {mid} má v EP jméno „{old.strip()}“, oprava „{new}“ k němu nesedí; zkontroluj opravu")
         m["given_name"], m["family_name"] = fix["given_name"], fix["family_name"]
         m["name"] = f"{fix['given_name']} {fix['family_name'].upper()}"
         m["name_note"] = f"{fix['note']} Zdroj: {fix['source']}"

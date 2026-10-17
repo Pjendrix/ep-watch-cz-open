@@ -56,12 +56,19 @@ def agenda_view(agenda: dict | None, own_work: dict | None, names: dict[int, str
     roles = cz_roles_by_doc(own_work)
     items = []
     for it in nxt["items"]:
-        cz = [{"mep_id": r["mep_id"], "name": names.get(r["mep_id"]), "role": r["role"]}
-              for d in it["docs"] for r in roles.get(d, [])]
+        cz = [{"mep_id": r["mep_id"], "name": names.get(r["mep_id"]), "role": r["role"]} for d in it["docs"] for r in roles.get(d, [])]
         items.append({**it, "cz": cz})
     candidates = [x for x in items if x["docs"]]
-    picks = sorted(candidates, key=lambda x: (not x["cz"], not x["legislative"], x["date"],
-                                              x["order"] if x["order"] is not None else 1e9))[:PICKS]
-    return {"from": nxt["from"], "to": nxt["to"], "days": nxt["days"], "votes": len(items), "items": items,
-            "picks": [x["id"] for x in picks], "fetched": (agenda or {}).get("fetched"),
-            "source": (agenda or {}).get("source")}
+    picks = sorted(candidates, key=lambda x: (not x["cz"], not x["legislative"], x["date"], x["order"] if x["order"] is not None else 1e9))[
+        :PICKS
+    ]
+    return {
+        "from": nxt["from"],
+        "to": nxt["to"],
+        "days": nxt["days"],
+        "votes": len(items),
+        "items": items,
+        "picks": [x["id"] for x in picks],
+        "fetched": (agenda or {}).get("fetched"),
+        "source": (agenda or {}).get("source"),
+    }

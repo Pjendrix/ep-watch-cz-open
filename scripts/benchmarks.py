@@ -43,9 +43,14 @@ def window_threshold(n_votes: int, min_votes: int = MIN_VOTES) -> int:
     return max(1, min(min_votes, -(-n_votes // 2)))
 
 
-def compute_benchmarks(rows, group_counts: dict[int, dict[str, list[int]]], final_ids: set[int],
-                       min_votes: int = MIN_VOTES, windows: dict[str, tuple[str, str | None]] | None = None,
-                       vote_dates: dict[int, str] | None = None) -> dict:
+def compute_benchmarks(
+    rows,
+    group_counts: dict[int, dict[str, list[int]]],
+    final_ids: set[int],
+    min_votes: int = MIN_VOTES,
+    windows: dict[str, tuple[str, str | None]] | None = None,
+    vote_dates: dict[int, str] | None = None,
+) -> dict:
     """rows: iterovatelné (vote_id, member_id, position, group_code).
 
     windows = {klíč: (od, do)} okna mandátu českých poslanců (D7); pro každé se medián EP a frakcí spočítá jen z hlasování
@@ -95,12 +100,21 @@ def compute_benchmarks(rows, group_counts: dict[int, dict[str, list[int]]], fina
         for (kk, _, group), st in by_member_group.items():
             if kk == k:
                 groups[group].append(st)
-        return {"ep": medians([st for (kk, _), st in by_member.items() if kk == k], threshold),
-                "groups": {g: medians(items, threshold) for g, items in sorted(groups.items())}}
+        return {
+            "ep": medians([st for (kk, _), st in by_member.items() if kk == k], threshold),
+            "groups": {g: medians(items, threshold) for g, items in sorted(groups.items())},
+        }
 
     out = {"min_votes": min_votes, "definition": DEFINITION, **block("", min_votes)}
     if windows:
-        out["windows"] = {k: {"from": windows[k][0], "to": windows[k][1], "votes": n_votes[k],
-                              "min_votes": window_threshold(n_votes[k], min_votes), **block(k, window_threshold(n_votes[k], min_votes))}
-                          for k in windows}
+        out["windows"] = {
+            k: {
+                "from": windows[k][0],
+                "to": windows[k][1],
+                "votes": n_votes[k],
+                "min_votes": window_threshold(n_votes[k], min_votes),
+                **block(k, window_threshold(n_votes[k], min_votes)),
+            }
+            for k in windows
+        }
     return out

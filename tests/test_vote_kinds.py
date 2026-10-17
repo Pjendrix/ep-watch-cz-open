@@ -8,8 +8,13 @@ from vote_kinds import classify, is_final, kind_of  # noqa: E402
 
 
 def v(description, is_main=False, subject=None, amendment_number=None, title=None):
-    return {"description": description, "is_main": is_main, "amendment_subject": subject,
-            "amendment_number": amendment_number, "title": title}
+    return {
+        "description": description,
+        "is_main": is_main,
+        "amendment_subject": subject,
+        "amendment_number": amendment_number,
+        "title": title,
+    }
 
 
 # Vzory z aktuálních dat HowTheyVote (description, is_main, amendment_subject) -> (typ, inverted).
@@ -41,8 +46,7 @@ CASES = [
     (v("Après le considérant D - Am 1"), ("amendment", False)),
     (v("Avant le § 1 - Am 3"), ("amendment", False)),
     (v("Amendements de la commission compétente - vote séparé - Am 1/2"), ("amendment", False)),
-    (v("Article 1 - alinéa 1 - point 2; Règlement (UE) 2021/1119 - Article 4 - paragraphe 3 - Am 64S"),
-     ("amendment", False)),
+    (v("Article 1 - alinéa 1 - point 2; Règlement (UE) 2021/1119 - Article 4 - paragraphe 3 - Am 64S"), ("amendment", False)),
     (v("§ 5/1", False, "§ 5", "§ 5/1"), ("split_part", False)),
     (v("Considérant R/2"), ("split_part", False)),
     (v("Annexe, partie introductive/2"), ("split_part", False)),
@@ -51,12 +55,12 @@ CASES = [
     (v("Demande d'ajournement du vote"), ("procedural", False)),
     (v("Demande de renvoi en commission"), ("procedural", False)),
     # námitky proti aktům Komise (169418, 181956): hlavní hlasování = objection, PN k nim zůstávají PN
-    (v("Proposition de résolution", True, title="Objection pursuant to Rule 115(2) and (3), and Rule 115(4)(c): MOCK"),
-     ("objection", False)),
-    (v("Proposition de résolution (ensemble du texte)", True, title="Objection pursuant to Rule 114(3): MOCK"),
-     ("objection", False)),
-    (v("Après le § 2 - Am 2", False, "After § 2", title="Objection pursuant to Rule 115(2) and (3): MOCK"),
-     ("amendment", False)),
+    (
+        v("Proposition de résolution", True, title="Objection pursuant to Rule 115(2) and (3), and Rule 115(4)(c): MOCK"),
+        ("objection", False),
+    ),
+    (v("Proposition de résolution (ensemble du texte)", True, title="Objection pursuant to Rule 114(3): MOCK"), ("objection", False)),
+    (v("Après le § 2 - Am 2", False, "After § 2", title="Objection pursuant to Rule 115(2) and (3): MOCK"), ("amendment", False)),
     (v("Proposition de décision du Conseil"), ("other", False)),
 ]
 

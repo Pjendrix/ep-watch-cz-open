@@ -25,9 +25,14 @@ class FakeClient:
 
 
 def act(i, day, typ=VOTE, docs=(), order=None, cs="MOCK_bod"):
-    return {"activity_id": f"MOCK-{i}", "activity_date": f"{day}T09:00:00", "had_activity_type": typ,
-            "activity_label": {"cs": cs, "en": "MOCK item"}, "activity_order": order,
-            "based_on_a_realization_of": [f"eli/dl/doc/{d}" for d in docs]}
+    return {
+        "activity_id": f"MOCK-{i}",
+        "activity_date": f"{day}T09:00:00",
+        "had_activity_type": typ,
+        "activity_label": {"cs": cs, "en": "MOCK item"},
+        "activity_order": order,
+        "based_on_a_realization_of": [f"eli/dl/doc/{d}" for d in docs],
+    }
 
 
 def test_doc_key_both_formats():
@@ -49,9 +54,7 @@ def test_group_and_next_session():
 def test_vote_items_only_votes_with_docs_and_order():
     first = act(1, "2026-10-20", docs=["A-10-2026-0213", "C-10-2026-0001"], order="12")
     first["occured_at_stage"] = "http://publications.europa.eu/resource/authority/procedure-phase/RDG1"
-    payload = {"data": [first,
-                        act(2, "2026-10-20", typ="def/ep-activities/PLENARY_DEBATE"),
-                        act(3, "2026-10-20", order=3)]}
+    payload = {"data": [first, act(2, "2026-10-20", typ="def/ep-activities/PLENARY_DEBATE"), act(3, "2026-10-20", order=3)]}
     items = fa.vote_items(payload, "2026-10-20")
     assert [i["id"] for i in items] == ["MOCK-3", "MOCK-1"]
     assert items[1]["docs"] == ["A-10-2026-0213", "C-10-2026-0001"] and items[1]["legislative"]
@@ -73,12 +76,16 @@ def test_vote_items_format_error():
 
 
 def test_build_and_write_if_changed(tmp_path):
-    routes = {("meetings", 2026): {"data": [{"activity_id": "MTG-PL-2026-10-19"}, {"activity_id": "MTG-PL-2026-10-20"},
-                                             {"activity_id": "MTG-COMMITTEE-x"}]},
-              ("meetings/MTG-PL-2026-10-19/foreseen-activities", None): {"data": [act(1, "2026-10-19", docs=["A-10-2026-0001"])]},
-              ("meetings/MTG-PL-2026-10-20/foreseen-activities", None): {"data": []},
-              ("plenary-documents/A-10-2026-0001", None): {"data": [{
-                  "inverse_created_a_realization_of": ["eli/dl/proc/2026-0042"], "creator": ["org/ENVI", "person/1"]}]}}
+    routes = {
+        ("meetings", 2026): {
+            "data": [{"activity_id": "MTG-PL-2026-10-19"}, {"activity_id": "MTG-PL-2026-10-20"}, {"activity_id": "MTG-COMMITTEE-x"}]
+        },
+        ("meetings/MTG-PL-2026-10-19/foreseen-activities", None): {"data": [act(1, "2026-10-19", docs=["A-10-2026-0001"])]},
+        ("meetings/MTG-PL-2026-10-20/foreseen-activities", None): {"data": []},
+        ("plenary-documents/A-10-2026-0001", None): {
+            "data": [{"inverse_created_a_realization_of": ["eli/dl/proc/2026-0042"], "creator": ["org/ENVI", "person/1"]}]
+        },
+    }
     client = FakeClient(routes)
     doc = fa.build(client, "2026-10-16")
     assert doc["docs"] == {"A-10-2026-0001": {"procedure": "2026-0042", "committee": "ENVI"}}
@@ -98,12 +105,17 @@ def test_build_no_sittings_is_error():
         fa.build(FakeClient({("meetings", 2026): {"data": []}}), "2026-10-16")
 
 
-OWN = {"meps": {
-    "1": {"items": [{"type": "report", "id": "A-10-2026-0213", "role": "RAPPORTEUR"},
-                    {"type": "motion", "id": "B-10-2026-0001"}]},
-    "2": {"items": [{"type": "shadow_report", "id": "proc-x", "report": "A10-0213/2026"},
-                    {"type": "report", "id": "A-10-2026-0300", "role": "RAPPORTEUR_CO"}]},
-}}
+OWN = {
+    "meps": {
+        "1": {"items": [{"type": "report", "id": "A-10-2026-0213", "role": "RAPPORTEUR"}, {"type": "motion", "id": "B-10-2026-0001"}]},
+        "2": {
+            "items": [
+                {"type": "shadow_report", "id": "proc-x", "report": "A10-0213/2026"},
+                {"type": "report", "id": "A-10-2026-0300", "role": "RAPPORTEUR_CO"},
+            ]
+        },
+    }
+}
 
 
 def test_cz_roles_by_doc_joins_both_formats():
@@ -114,15 +126,26 @@ def test_cz_roles_by_doc_joins_both_formats():
 
 
 def item(i, docs, legislative=False, order=None, day="2026-10-20"):
-    return {"id": f"MOCK-{i}", "date": day, "order": order, "title_cs": "MOCK", "title_en": None,
-            "docs": docs, "legislative": legislative}
+    return {"id": f"MOCK-{i}", "date": day, "order": order, "title_cs": "MOCK", "title_en": None, "docs": docs, "legislative": legislative}
 
 
 def test_agenda_view_picks_trace_then_legislative_then_order():
-    agenda = {"fetched": "2026-10-16", "source": {"name": "MOCK"},
-              "next": {"from": "2026-10-19", "to": "2026-10-22", "days": ["2026-10-19"], "items": [
-                  item(1, ["B-10-2026-0001"], order=1), item(2, ["C-10-2026-0002"], legislative=True, order=5),
-                  item(3, [], order=0), item(4, ["A-10-2026-0213"], order=9), item(5, ["A-10-2026-0400"], order=2)]}}
+    agenda = {
+        "fetched": "2026-10-16",
+        "source": {"name": "MOCK"},
+        "next": {
+            "from": "2026-10-19",
+            "to": "2026-10-22",
+            "days": ["2026-10-19"],
+            "items": [
+                item(1, ["B-10-2026-0001"], order=1),
+                item(2, ["C-10-2026-0002"], legislative=True, order=5),
+                item(3, [], order=0),
+                item(4, ["A-10-2026-0213"], order=9),
+                item(5, ["A-10-2026-0400"], order=2),
+            ],
+        },
+    }
     view = ag.agenda_view(agenda, OWN, {1: "MOCK Jedna", 2: "MOCK Dva"})
     assert view["picks"] == ["MOCK-4", "MOCK-2", "MOCK-1"]
     assert view["votes"] == 5
@@ -145,8 +168,11 @@ def test_meeting_parts_without_date_are_skipped():
 def test_empty_program_does_not_overwrite_previous(tmp_path, monkeypatch):
     """API občas vrátí zasedání bez hlasovacích bodů: předchozí úplný program stejného zasedání zůstane."""
     out = tmp_path / "agenda.json"
-    full = {"next": {"from": "2026-10-19", "to": "2026-10-22", "days": ["2026-10-19"], "items": [{"id": "MOCK-1"}]},
-            "docs": {}, "fetched": "2026-10-15"}
+    full = {
+        "next": {"from": "2026-10-19", "to": "2026-10-22", "days": ["2026-10-19"], "items": [{"id": "MOCK-1"}]},
+        "docs": {},
+        "fetched": "2026-10-15",
+    }
     out.write_text(json.dumps(full), encoding="utf-8")
     empty = {**full, "next": {**full["next"], "items": []}}
     monkeypatch.setattr(fa, "EPClient", lambda: None)

@@ -43,8 +43,10 @@ def delegation_metrics(country_counts: dict[int, dict[str, list[int]]], votes: l
             close["all"] += 1
             close["final"] += v["is_final"]
             # stejné pravidlo jako compute_stats.decisive_alternative: jen výsledek odpovídající prosté většině
-            if simple_result(c["for"], c["against"]) == v["result"] and \
-                    simple_result(c["for"] - n_for, c["against"] - n_against) != v["result"]:
+            if (
+                simple_result(c["for"], c["against"]) == v["result"]
+                and simple_result(c["for"] - n_for, c["against"] - n_against) != v["result"]
+            ):
                 decisive["all"] += 1
                 decisive["final"] += v["is_final"]
     return {"unity": united, "unity_final": united_final, "decisive": decisive, "close": close}
@@ -56,8 +58,9 @@ def seats(country_counts: dict[int, dict[str, list[int]]], votes: list[dict]) ->
     return {c: sum(row) for c, row in country_counts.get(last, {}).items()}
 
 
-def compute_delegations(country_counts, votes: list[dict], own: str = "CZE",
-                        min_seats: int = MIN_SEATS, max_seats: int = MAX_SEATS) -> dict:
+def compute_delegations(
+    country_counts, votes: list[dict], own: str = "CZE", min_seats: int = MIN_SEATS, max_seats: int = MAX_SEATS
+) -> dict:
     n = seats(country_counts, votes)
     if own not in n:
         raise ValueError(f"stát {own} není u posledního hlasování")
@@ -70,7 +73,10 @@ def compute_delegations(country_counts, votes: list[dict], own: str = "CZE",
 
     share = lambda pair: (pair[0] / pair[1]) if pair[1] else 0.0
     return {
-        "own": own, "peers": peers, "seats_range": [min_seats, max_seats], "countries": countries,
+        "own": own,
+        "peers": peers,
+        "seats_range": [min_seats, max_seats],
+        "countries": countries,
         "peer_range": {
             "unity": span(lambda m: round(share(m["unity"]), 4)),
             "unity_final": span(lambda m: round(share(m["unity_final"]), 4)),
@@ -82,5 +88,6 @@ def compute_delegations(country_counts, votes: list[dict], own: str = "CZE",
             "Jednotnost: podíl hlasování, ve kterých všichni poslanci státu, kteří hlasovali pro nebo proti, byli na jedné "
             "straně (aspoň dva hlasující). Rozhodující: těsné hlasování (rozdíl pro/proti nejvýš "
             f"{CLOSE_MARGIN}), které by bez hlasů pro a proti poslanců státu dopadlo opačně; jen hlasování, jejichž oficiální "
-            "výsledek odpovídá prosté většině. U všech států se berou poslanci, které HowTheyVote u hlasování vede."),
+            "výsledek odpovídá prosté většině. U všech států se berou poslanci, které HowTheyVote u hlasování vede."
+        ),
     }

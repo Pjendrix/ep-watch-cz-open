@@ -40,9 +40,13 @@ def parse_speech(item: dict, mep_id: int) -> dict | None:
         return None
     work = item.get("recorded_in_a_realization_of") or []
     work = work if isinstance(work, list) else [work]
-    return {"id": item.get("activity_id") or short(item["id"]), "date": item["activity_date"][:10], "type": TYPES[item["had_activity_type"]],
-            "minutes": minutes_between(item.get("activity_start_date"), item.get("activity_end_date")),
-            "item": short(work[0].get("is_part_of")) if work and isinstance(work[0], dict) else None}
+    return {
+        "id": item.get("activity_id") or short(item["id"]),
+        "date": item["activity_date"][:10],
+        "type": TYPES[item["had_activity_type"]],
+        "minutes": minutes_between(item.get("activity_start_date"), item.get("activity_end_date")),
+        "item": short(work[0].get("is_part_of")) if work and isinstance(work[0], dict) else None,
+    }
 
 
 def fetch_mep(client: EPClient, mep_id: int, since: str = TERM_START) -> list[dict]:
@@ -76,8 +80,16 @@ def main(argv=None) -> int:
     except FormatError as e:
         print(f"CHYBA FORMÁTU: {e}", file=sys.stderr)
         return 2
-    doc = {"source": {"name": "EP Open Data API v2, /speeches", "url": "https://data.europarl.europa.eu/api/v2/speeches", "license": "CC BY 4.0"},
-           "term_start": TERM_START, "updated": dt.datetime.now(dt.timezone.utc).date().isoformat(), "meps": out}
+    doc = {
+        "source": {
+            "name": "EP Open Data API v2, /speeches",
+            "url": "https://data.europarl.europa.eu/api/v2/speeches",
+            "license": "CC BY 4.0",
+        },
+        "term_start": TERM_START,
+        "updated": dt.datetime.now(dt.timezone.utc).date().isoformat(),
+        "meps": out,
+    }
     (args.data_dir / "speeches.json").write_text(json.dumps(doc, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
     print(f"projevy: {sum(len(v) for v in out.values())} záznamů u {len(out)} poslanců", file=sys.stderr)
     return 0

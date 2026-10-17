@@ -26,7 +26,7 @@ def by_gender(mep: dict, male: str, female: str) -> str:
         return female
     if g == "MALE":
         return male
-    return f"{male}/{female[len(male):]}" if female.startswith(male) else f"{male} / {female}"
+    return f"{male}/{female[len(male) :]}" if female.startswith(male) else f"{male} / {female}"
 
 
 def position_for(position: str, mep: dict) -> str:
@@ -58,8 +58,12 @@ def party_rows(cz: list[dict], meps_by_id: dict, parties: list[dict], groups: li
     rows: dict[str, dict] = {}
     for p in cz:
         entry = by_id.get(p.get("national_party_id"))
-        label = (entry or {}).get("short_label") or (p.get("national_party") if p.get("national_party") not in (None, "Independent") else "Ind.")
-        row = rows.setdefault(label, {"label": label, "color": (entry or {}).get("chart_color"), "groups": [], "members": {k: [] for k in POSITIONS}})
+        label = (entry or {}).get("short_label") or (
+            p.get("national_party") if p.get("national_party") not in (None, "Independent") else "Ind."
+        )
+        row = rows.setdefault(
+            label, {"label": label, "color": (entry or {}).get("chart_color"), "groups": [], "members": {k: [] for k in POSITIONS}}
+        )
         g = group_label(p.get("group_code"), groups)
         if g not in row["groups"]:
             row["groups"].append(g)
@@ -75,14 +79,22 @@ def party_rows(cz: list[dict], meps_by_id: dict, parties: list[dict], groups: li
 def card_parties(rows: list[dict], max_rows: int = MAX_CARD_ROWS) -> list[dict]:
     """Řádky stran pro kartu: [{label, groups, positions}]. Když by se nevešly, sloučí se jednočlenné strany do „ostatní“
     (jména stran zůstanou v popisu)."""
-    items = [{"label": r["label"], "groups": r["groups"], "positions": [k for k in POSITIONS for _ in r["members"][k]], "total": r["total"]}
-             for r in rows]
+    items = [
+        {"label": r["label"], "groups": r["groups"], "positions": [k for k in POSITIONS for _ in r["members"][k]], "total": r["total"]}
+        for r in rows
+    ]
     if len(items) > max_rows:
         keep = [i for i in items if i["total"] > 1]
         rest = [i for i in items if i["total"] == 1]
         while len(keep) >= max_rows and keep:  # ani větší strany se nevejdou: nechat největší
             rest.insert(0, keep.pop())
-        keep.append({"label": "ostatní", "groups": [i["label"] for i in sorted(rest, key=lambda i: i["label"])],
-                     "positions": sorted((k for i in rest for k in i["positions"]), key=POSITIONS.index), "total": sum(i["total"] for i in rest)})
+        keep.append(
+            {
+                "label": "ostatní",
+                "groups": [i["label"] for i in sorted(rest, key=lambda i: i["label"])],
+                "positions": sorted((k for i in rest for k in i["positions"]), key=POSITIONS.index),
+                "total": sum(i["total"] for i in rest),
+            }
+        )
         items = keep
     return items

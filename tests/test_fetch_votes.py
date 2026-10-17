@@ -44,7 +44,8 @@ def test_run_filters_term_and_country(csv_dir, tmp_path):
     assert [p["member_id"] for p in v["cz_positions"]] == [100, 200]
     assert v["cz_positions"][1]["position"] == "DID_NOT_VOTE"
     assert v["topics"]["eurovoc"] == [
-        {"code": "5", "label": "MOCK energy"}, {"code": "6", "label": "MOCK climate"},
+        {"code": "5", "label": "MOCK energy"},
+        {"code": "6", "label": "MOCK climate"},
     ]
     assert v["topics"]["oeil"] == [{"code": "3.70", "label": "MOCK environment"}]
     assert v["topics"]["committees"] == ["ENVI"]
@@ -55,8 +56,7 @@ def test_group_and_party_taken_per_vote(csv_dir, tmp_path):
     sept = {v["id"]: v for v in months["2024-09"]["votes"]}
     p200 = sept[3]["cz_positions"][1]
     # v červenci byl 200 v PFE se stranou, v září nezařazený bez strany
-    assert p200 == {"member_id": 200, "position": "AGAINST", "group_code": "NI",
-                    "national_party_id": None, "national_party": None}
+    assert p200 == {"member_id": 200, "position": "AGAINST", "group_code": "NI", "national_party_id": None, "national_party": None}
 
 
 def test_missing_values_are_null_not_guessed(csv_dir, tmp_path):
@@ -67,14 +67,17 @@ def test_missing_values_are_null_not_guessed(csv_dir, tmp_path):
     assert v4["topics"] == {"eurovoc": [], "oeil": [], "geo": [], "committees": []}
 
 
-@pytest.mark.parametrize("table,old,new,msg", [
-    ("votes", "display_title,", "title,", "chybí sloupce"),
-    ("member_votes", ",position,", ",vote,", "chybí sloupce"),
-    ("member_votes", "DID_NOT_VOTE", "ABSENT", "neočekávaná pozice"),
-    ("votes", ",REJECTED,", ",FAILED,", "neočekávaný výsledek"),
-    ("votes", "2024-09-16 17:00:00", "16.9.2024", "neplatný timestamp"),
-    ("votes", ",False,", ",maybe,", "is_main"),
-])
+@pytest.mark.parametrize(
+    "table,old,new,msg",
+    [
+        ("votes", "display_title,", "title,", "chybí sloupce"),
+        ("member_votes", ",position,", ",vote,", "chybí sloupce"),
+        ("member_votes", "DID_NOT_VOTE", "ABSENT", "neočekávaná pozice"),
+        ("votes", ",REJECTED,", ",FAILED,", "neočekávaný výsledek"),
+        ("votes", "2024-09-16 17:00:00", "16.9.2024", "neplatný timestamp"),
+        ("votes", ",False,", ",maybe,", "is_main"),
+    ],
+)
 def test_format_changes_raise(csv_dir, tmp_path, table, old, new, msg):
     edit(csv_dir, table, old, new)
     with pytest.raises(fv.FormatError, match=msg):

@@ -44,6 +44,7 @@ def test_real_overrides_match_current_meps():
     root = Path(__file__).resolve().parent.parent
     if not (root / "data" / "meps.json").exists():  # ve veřejném repozitáři výpočtů nejsou stažená data
         import pytest
+
         pytest.skip("data/meps.json není k dispozici")
     meps = json.loads((root / "data" / "meps.json").read_text(encoding="utf-8"))["meps"]
     assert apply_name_overrides(meps, root / "data" / "manual" / "overrides.json") >= 1

@@ -6,13 +6,20 @@ import own_work as ow  # noqa: E402
 
 
 def vote(vid, ref, result, date="2025-09-09", is_main=True, description=None, subject=None):
-    return {"id": vid, "reference": ref, "result": result, "date": date, "timestamp": date + " 12:00:00",
-            "is_main": is_main, "description": description, "amendment_subject": subject}
+    return {
+        "id": vid,
+        "reference": ref,
+        "result": result,
+        "date": date,
+        "timestamp": date + " 12:00:00",
+        "is_main": is_main,
+        "description": description,
+        "amendment_subject": subject,
+    }
 
 
 def part(mep, role="AUTHOR", **kw):
-    return {"mep_id": mep, "role": role, "group": kw.get("group"), "in_name_of": kw.get("in_name_of"),
-            "date": kw.get("date")}
+    return {"mep_id": mep, "role": role, "group": kw.get("group"), "in_name_of": kw.get("in_name_of"), "date": kw.get("date")}
 
 
 def test_htv_reference():
@@ -21,10 +28,20 @@ def test_htv_reference():
 
 
 def test_report_uses_last_main_vote():
-    votes = [vote(1, "A10-0001/2025", "REJECTED", "2025-03-01"), vote(2, "A10-0001/2025", "ADOPTED", "2025-04-01"),
-             vote(3, "A10-0001/2025", "REJECTED", "2025-05-01", is_main=False)]
-    items = [{"id": "A-10-2025-0001", "kind": "report", "label": "A10-0001/2025", "procedure": "2025-0001",
-              "participants": [part(1, "RAPPORTEUR")]}]
+    votes = [
+        vote(1, "A10-0001/2025", "REJECTED", "2025-03-01"),
+        vote(2, "A10-0001/2025", "ADOPTED", "2025-04-01"),
+        vote(3, "A10-0001/2025", "REJECTED", "2025-05-01", is_main=False),
+    ]
+    items = [
+        {
+            "id": "A-10-2025-0001",
+            "kind": "report",
+            "label": "A10-0001/2025",
+            "procedure": "2025-0001",
+            "participants": [part(1, "RAPPORTEUR")],
+        }
+    ]
     out = ow.link(items, {}, votes)
     assert out[1][0]["status"] == "ADOPTED" and out[1][0]["vote_id"] == 2
 
@@ -49,25 +66,48 @@ def test_procedure_roles_and_shadow_result():
     docs = {"A-10-2025-0001": {"kind": "report", "label": "A10-0001/2025", "procedure": "2025-0001", "date": "2025-06-01"}}
     votes = [vote(5, "A10-0001/2025", "ADOPTED")]
     items = [
-        {"id": "A-10-2025-0001", "kind": "report", "label": "A10-0001/2025", "procedure": "2025-0001",
-         "participants": [part(1, "RAPPORTEUR")]},
-        {"id": "proc-2025-0001", "kind": "procedure", "label": "2025/0001(COD)", "procedure": "2025-0001",
-         "participants": [part(1, "RAPPORTEUR", date="2025-01-01"), part(2, "RAPPORTEUR_SHADOW", date="2025-02-01"),
-                          part(3, "RAPPORTEUR_OPINION", in_name_of="ENVI"), part(4, "RAPPORTEUR_SHADOW_OPINION")]},
-        {"id": "proc-2025-0002", "kind": "procedure", "label": "2025/0002(COD)", "procedure": "2025-0002",
-         "participants": [part(1, "RAPPORTEUR")]},  # zpráva zatím v plénu není
+        {
+            "id": "A-10-2025-0001",
+            "kind": "report",
+            "label": "A10-0001/2025",
+            "procedure": "2025-0001",
+            "participants": [part(1, "RAPPORTEUR")],
+        },
+        {
+            "id": "proc-2025-0001",
+            "kind": "procedure",
+            "label": "2025/0001(COD)",
+            "procedure": "2025-0001",
+            "participants": [
+                part(1, "RAPPORTEUR", date="2025-01-01"),
+                part(2, "RAPPORTEUR_SHADOW", date="2025-02-01"),
+                part(3, "RAPPORTEUR_OPINION", in_name_of="ENVI"),
+                part(4, "RAPPORTEUR_SHADOW_OPINION"),
+            ],
+        },
+        {
+            "id": "proc-2025-0002",
+            "kind": "procedure",
+            "label": "2025/0002(COD)",
+            "procedure": "2025-0002",
+            "participants": [part(1, "RAPPORTEUR")],
+        },  # zpráva zatím v plénu není
     ]
     out = ow.link(items, docs, votes)
     assert sorted((e["id"], e["type"], e["status"]) for e in out[1]) == [
-        ("A-10-2025-0001", "report", "ADOPTED"), ("proc-2025-0002", "report", "no_vote")]  # proc-2025-0001 je duplicita zprávy
+        ("A-10-2025-0001", "report", "ADOPTED"),
+        ("proc-2025-0002", "report", "no_vote"),
+    ]  # proc-2025-0001 je duplicita zprávy
     assert (out[2][0]["type"], out[2][0]["status"], out[2][0]["report"]) == ("shadow_report", "ADOPTED", "A10-0001/2025")
     assert (out[3][0]["type"], out[3][0]["status"], out[3][0]["committee"]) == ("opinion", None, "ENVI")
     assert out[4][0]["type"] == "shadow_opinion"
 
 
 def test_questions_and_summary():
-    items = [{"id": "E-1", "kind": "question_written", "participants": [part(1)], "answer_date": "2025-02-01"},
-             {"id": "E-2", "kind": "question_priority", "participants": [part(1)], "answer_date": None}]
+    items = [
+        {"id": "E-1", "kind": "question_written", "participants": [part(1)], "answer_date": "2025-02-01"},
+        {"id": "E-2", "kind": "question_priority", "participants": [part(1)], "answer_date": None},
+    ]
     out = ow.link(items, {}, [])
     s = ow.summarize(out[1])
     assert s["question"] == {"count": 2, "answered": 1}
@@ -76,14 +116,14 @@ def test_questions_and_summary():
 
 def test_summary_counts_only_known_results():
     entries = [{"type": "motion", "status": s} for s in ("ADOPTED", "REJECTED", "superseded", "no_vote", "LAPSED")]
-    assert ow.summarize(entries)["motion"] == {"count": 5, "voted": 2, "adopted": 1, "no_vote": 1, "other": 1,
-                                              "superseded": 1}
+    assert ow.summarize(entries)["motion"] == {"count": 5, "voted": 2, "adopted": 1, "no_vote": 1, "other": 1, "superseded": 1}
 
 
 # --- review R2: návrh na zamítnutí, mandát, naléhavost ---------------------------
 
-REPORT = [{"id": "A-10-2025-0176", "kind": "report", "label": "A10-0176/2025", "procedure": "2023-0272",
-           "participants": [part(1, "RAPPORTEUR")]}]
+REPORT = [
+    {"id": "A-10-2025-0176", "kind": "report", "label": "A10-0176/2025", "procedure": "2023-0272", "participants": [part(1, "RAPPORTEUR")]}
+]
 
 
 def test_adopted_rejection_means_text_rejected():
@@ -95,18 +135,21 @@ def test_adopted_rejection_means_text_rejected():
 
 def test_rejected_rejection_then_final_vote_counts():
     """Podle AGILE: návrh na zamítnutí zamítnut (197601), prozatímní dohoda přijata (197360)."""
-    votes = [vote(197601, "A10-0176/2025", "REJECTED", "2026-05-05", description="Proposition de rejet - Am 3",
-                  subject="Proposal for rejection"),
-             vote(197360, "A10-0176/2025", "ADOPTED", "2026-05-05", description="Accord provisoire - Am 2",
-                  subject="Provisional agreement")]
+    votes = [
+        vote(
+            197601, "A10-0176/2025", "REJECTED", "2026-05-05", description="Proposition de rejet - Am 3", subject="Proposal for rejection"
+        ),
+        vote(197360, "A10-0176/2025", "ADOPTED", "2026-05-05", description="Accord provisoire - Am 2", subject="Provisional agreement"),
+    ]
     e = ow.link(REPORT, {}, votes)[1][0]
     assert (e["status"], e["vote_id"]) == ("ADOPTED", 197360) and "note" not in e
 
 
 def test_mandate_and_urgency_are_ignored():
-    votes = [vote(1, "A10-0176/2025", "ADOPTED", "2025-01-01",
-                  description="Décision d'engager des négociations interinstitutionnelles"),
-             vote(2, "A10-0176/2025", "ADOPTED", "2025-01-02", description="Demande de décision d'urgence")]
+    votes = [
+        vote(1, "A10-0176/2025", "ADOPTED", "2025-01-01", description="Décision d'engager des négociations interinstitutionnelles"),
+        vote(2, "A10-0176/2025", "ADOPTED", "2025-01-02", description="Demande de décision d'urgence"),
+    ]
     e = ow.link(REPORT, {}, votes)[1][0]
     assert e["status"] == "no_vote" and e["vote_id"] is None
 
@@ -121,28 +164,39 @@ def test_passed_counts_adopted():
         {"type": "motion", "status": "superseded"},
     ]
     p = ow.passed(entries)
-    assert p == {"lead_adopted": 1, "lead_adopted_legislative": 1, "lead_pending": 1, "shadow_adopted": 1,
-                 "shadow_adopted_legislative": 0, "shadow_pending": 0, "resolutions_adopted": 1}
+    assert p == {
+        "lead_adopted": 1,
+        "lead_adopted_legislative": 1,
+        "lead_pending": 1,
+        "shadow_adopted": 1,
+        "shadow_adopted_legislative": 0,
+        "shadow_pending": 0,
+        "resolutions_adopted": 1,
+    }
 
 
 def test_roles_count_assignments_regardless_of_result():
     entries = [
-        {"type": "report", "status": "ADOPTED"}, {"type": "report", "status": "REJECTED"},
-        {"type": "report", "status": "no_vote"}, {"type": "opinion", "status": None},
-        {"type": "shadow_report", "status": "ADOPTED"}, {"type": "shadow_opinion", "status": None},
-        {"type": "shadow_opinion", "status": None}, {"type": "joint_motion", "status": "ADOPTED"},
-        {"type": "motion", "status": "superseded"}, {"type": "question", "status": "answered"},
+        {"type": "report", "status": "ADOPTED"},
+        {"type": "report", "status": "REJECTED"},
+        {"type": "report", "status": "no_vote"},
+        {"type": "opinion", "status": None},
+        {"type": "shadow_report", "status": "ADOPTED"},
+        {"type": "shadow_opinion", "status": None},
+        {"type": "shadow_opinion", "status": None},
+        {"type": "joint_motion", "status": "ADOPTED"},
+        {"type": "motion", "status": "superseded"},
+        {"type": "question", "status": "answered"},
     ]
-    assert ow.roles(entries) == {"lead_reports": 3, "lead_opinions": 1, "shadow_reports": 1,
-                                 "shadow_opinions": 2, "motions_signed": 2}
+    assert ow.roles(entries) == {"lead_reports": 3, "lead_opinions": 1, "shadow_reports": 1, "shadow_opinions": 2, "motions_signed": 2}
 
 
 def test_tier_thirds():
     values = [0, 0, 1, 1, 2, 3, 5, 8, 9]
-    assert ow.tier(0, values) is None            # nula nemá třetinu
-    assert ow.tier(1, values) == "low"           # menších 2/9
-    assert ow.tier(2, values) == "mid"           # menších 4/9
-    assert ow.tier(8, values) == "top"           # menších 7/9
+    assert ow.tier(0, values) is None  # nula nemá třetinu
+    assert ow.tier(1, values) == "low"  # menších 2/9
+    assert ow.tier(2, values) == "mid"  # menších 4/9
+    assert ow.tier(8, values) == "top"  # menších 7/9
     assert ow.tier(3, values) == "mid" and ow.tier(5, values) == "top"  # 5/9 a 6/9 (hranice 2/3 patří nahoru)
 
 
@@ -183,10 +237,20 @@ def test_report_counted_once_regardless_of_order():
     docs = {"A-10-2025-0001": {"kind": "report", "label": "A10-0001/2025", "procedure": "2025-0001", "date": "2025-06-01"}}
     votes = [vote(5, "A10-0001/2025", "ADOPTED")]
     items = [
-        {"id": "proc-2025-0001", "kind": "procedure", "label": "2025/0001(COD)", "procedure": "2025-0001",
-         "participants": [part(1, "RAPPORTEUR", date="2025-01-01")]},
-        {"id": "A-10-2025-0001", "kind": "report", "label": "A10-0001/2025", "procedure": "2025-0001",
-         "participants": [part(1, "RAPPORTEUR")]},
+        {
+            "id": "proc-2025-0001",
+            "kind": "procedure",
+            "label": "2025/0001(COD)",
+            "procedure": "2025-0001",
+            "participants": [part(1, "RAPPORTEUR", date="2025-01-01")],
+        },
+        {
+            "id": "A-10-2025-0001",
+            "kind": "report",
+            "label": "A10-0001/2025",
+            "procedure": "2025-0001",
+            "participants": [part(1, "RAPPORTEUR")],
+        },
     ]
     out = ow.link(items, docs, votes)
     assert [e["type"] for e in out[1]] == ["report"]
@@ -194,10 +258,18 @@ def test_report_counted_once_regardless_of_order():
 
 
 def test_repeated_role_in_procedure_counted_once():
-    items = [{"id": "proc-2025-0555", "kind": "procedure", "label": "2025/0555(COD)", "procedure": "2025-0555",
-              "participants": [part(1, "RAPPORTEUR_SHADOW_OPINION", date="2025-12-10"),
-                               part(1, "RAPPORTEUR_SHADOW_OPINION", date="2026-01-23"),
-                               part(1, "RAPPORTEUR_SHADOW", date="2026-02-01")]}]
+    items = [
+        {
+            "id": "proc-2025-0555",
+            "kind": "procedure",
+            "label": "2025/0555(COD)",
+            "procedure": "2025-0555",
+            "participants": [
+                part(1, "RAPPORTEUR_SHADOW_OPINION", date="2025-12-10"),
+                part(1, "RAPPORTEUR_SHADOW_OPINION", date="2026-01-23"),
+                part(1, "RAPPORTEUR_SHADOW", date="2026-02-01"),
+            ],
+        }
+    ]
     out = ow.link(items, {}, [])
-    assert ow.roles(out[1]) == {"lead_reports": 0, "lead_opinions": 0, "shadow_reports": 1,
-                                "shadow_opinions": 1, "motions_signed": 0}
+    assert ow.roles(out[1]) == {"lead_reports": 0, "lead_opinions": 0, "shadow_reports": 1, "shadow_opinions": 1, "motions_signed": 0}

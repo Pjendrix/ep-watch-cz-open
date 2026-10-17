@@ -34,7 +34,7 @@ KIND_LABELS = {
 KIND_NOTES = {
     "rejection": "Hlasovalo se o návrhu na zamítnutí: hlas PRO = text zamítnout, hlas PROTI = text ponechat.",
     "objection": "Hlasovalo se o usnesení, kterým Parlament vznáší námitku proti aktu Komise (čl. 114 nebo 115 jednacího "
-                 "řádu): hlas PRO = vznést námitku (nesouhlas s aktem), hlas PROTI = námitku nevznášet.",
+    "řádu): hlas PRO = vznést námitku (nesouhlas s aktem), hlas PROTI = námitku nevznášet.",
 }
 
 _REJECTION = re.compile(r"^(Proposition de rejet|Proposition de rejeter|Rejet de la position du Conseil)", re.I)

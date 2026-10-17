@@ -29,32 +29,65 @@ from overrides import apply_name_overrides
 from vote_kinds import is_final
 from compute_stats import load_votes
 
-LEGISLATIVE = {"COD", "CNS", "APP"}   # stejně jako own_work.py
+LEGISLATIVE = {"COD", "CNS", "APP"}  # stejně jako own_work.py
 DONE_DAYS = 365
-CZ_ROLES = {"RAPPORTEUR": "rapporteur", "RAPPORTEUR_CO": "co", "RAPPORTEUR_SHADOW": "shadow",
-            "RAPPORTEUR_OPINION": "opinion", "RAPPORTEUR_SHADOW_OPINION": "shadow_opinion"}
+CZ_ROLES = {
+    "RAPPORTEUR": "rapporteur",
+    "RAPPORTEUR_CO": "co",
+    "RAPPORTEUR_SHADOW": "shadow",
+    "RAPPORTEUR_OPINION": "opinion",
+    "RAPPORTEUR_SHADOW_OPINION": "shadow_opinion",
+}
 CZ_ROLE_CS = {**ROLE_CS, "opinion": "zpravodaj/ka stanoviska", "shadow_opinion": "stínový/á zpravodaj/ka stanoviska"}
 ROLE_ORDER = ["rapporteur", "co", "shadow", "opinion", "shadow_opinion"]
 
 # Fáze procedury: oficiální české názvy z číselníku EU „procedure-phase“
 # (https://publications.europa.eu/resource/authority/procedure-phase).
-STAGE_CS = {"PROP": "návrh", "INI_LEGIS": "legislativní podnět", "RDG1": "první čtení", "RDG2": "druhé čtení",
-            "RDG3": "třetí čtení", "NGT": "jednání", "CONCILIA": "dohodovací postup",
-            "CONCILIA_RDG3": "dohodovací postup a třetí čtení", "PROC_END": "konec postupu"}
+STAGE_CS = {
+    "PROP": "návrh",
+    "INI_LEGIS": "legislativní podnět",
+    "RDG1": "první čtení",
+    "RDG2": "druhé čtení",
+    "RDG3": "třetí čtení",
+    "NGT": "jednání",
+    "CONCILIA": "dohodovací postup",
+    "CONCILIA_RDG3": "dohodovací postup a třetí čtení",
+    "PROC_END": "konec postupu",
+}
 
 # Kroky procedury pro časovou osu: (klíč, název, typy událostí EP API, které krok znamenají). Pořadí = průběh.
 MILESTONES = [
-    ("committee", "Výbor", {"REFERRAL", "COMMITTEE_TABLING_REPORT", "COMMITTEE_TABLING_AMENDMENT",
-                            "COMMITTEE_TABLING_OPINION", "COMMITTEE_ADOPTING_OPINION"}),
+    (
+        "committee",
+        "Výbor",
+        {"REFERRAL", "COMMITTEE_TABLING_REPORT", "COMMITTEE_TABLING_AMENDMENT", "COMMITTEE_TABLING_OPINION", "COMMITTEE_ADOPTING_OPINION"},
+    ),
     ("report", "Zpráva výboru", {"COMMITTEE_ADOPTING_REPORT", "TABLING_PLENARY"}),
-    ("trilogue", "Jednání s Radou", {"PLENARY_ENDORSE_COMMITTEE_INTERINSTITUTIONAL_NEGOTIATIONS",
-                                     "PLENARY_REFER_COMMITTEE_INTERINSTITUTIONAL_NEGOTIATIONS",
-                                     "PLENARY_REJECT_COMMITTEE_INTERINSTUTIONAL_NEGOTIATIONS",
-                                     "INTERINSTITUTIONAL_NEGOTIATION", "COMMITTEE_APPROVE_PROVISIONAL_AGREEMENT",
-                                     "PLENARY_AMEND"}),
-    ("plenary", "Hlasování v plénu", {"PLENARY_VOTE", "PLENARY_ADOPT_POSITION", "PLENARY_VOTE_RESULTS",
-                                      "PLENARY_APPROVE_COUNCIL_POSITION", "PLENARY_AMEND_COUNCIL_POSITION",
-                                      "PLENARY_AMEND_PROPOSAL", "PLENARY_DECISION"}),
+    (
+        "trilogue",
+        "Jednání s Radou",
+        {
+            "PLENARY_ENDORSE_COMMITTEE_INTERINSTITUTIONAL_NEGOTIATIONS",
+            "PLENARY_REFER_COMMITTEE_INTERINSTITUTIONAL_NEGOTIATIONS",
+            "PLENARY_REJECT_COMMITTEE_INTERINSTUTIONAL_NEGOTIATIONS",
+            "INTERINSTITUTIONAL_NEGOTIATION",
+            "COMMITTEE_APPROVE_PROVISIONAL_AGREEMENT",
+            "PLENARY_AMEND",
+        },
+    ),
+    (
+        "plenary",
+        "Hlasování v plénu",
+        {
+            "PLENARY_VOTE",
+            "PLENARY_ADOPT_POSITION",
+            "PLENARY_VOTE_RESULTS",
+            "PLENARY_APPROVE_COUNCIL_POSITION",
+            "PLENARY_AMEND_COUNCIL_POSITION",
+            "PLENARY_AMEND_PROPOSAL",
+            "PLENARY_DECISION",
+        },
+    ),
     ("closed", "Podpis a vyhlášení", {"SIGNATURE", "PUBLICATION_OFFICIAL_JOURNAL"}),
 ]
 MILESTONE_KEYS = [k for k, _, _ in MILESTONES]
@@ -92,16 +125,31 @@ EVENT_CS = {
 # Výbory EP 10. období: český název a kategorie webu (scripts/categories.py). Kategorie podle hlavní náplně výboru;
 # výbor bez jednoznačné kategorie (CULT) kategorii nemá.
 COMMITTEES = {
-    "AFET": ("Zahraniční věci", "abr"), "DROI": ("Lidská práva", "abr"), "SEDE": ("Bezpečnost a obrana", "def"),
-    "DEVE": ("Rozvoj", "abr"), "INTA": ("Mezinárodní obchod", "abr"), "BUDG": ("Rozpočty", "fin"),
-    "CONT": ("Kontrola rozpočtu", "fin"), "ECON": ("Hospodářské a měnové věci", "fin"), "FISC": ("Daňové záležitosti", "fin"),
-    "EMPL": ("Zaměstnanost a sociální věci", "soc"), "ENVI": ("Životní prostředí, klima a bezpečnost potravin", "env"),
-    "SANT": ("Veřejné zdraví", "soc"), "ITRE": ("Průmysl, výzkum a energetika", "eco"),
-    "IMCO": ("Vnitřní trh a ochrana spotřebitelů", "eco"), "TRAN": ("Doprava a cestovní ruch", "tra"),
-    "REGI": ("Regionální rozvoj", "fin"), "AGRI": ("Zemědělství a rozvoj venkova", "agr"), "PECH": ("Rybolov", "agr"),
-    "CULT": ("Kultura a vzdělávání", None), "JURI": ("Právní záležitosti", "jus"),
-    "LIBE": ("Občanské svobody, spravedlnost a vnitřní věci", "jus"), "AFCO": ("Ústavní záležitosti", "ins"),
-    "FEMM": ("Práva žen a rovnost pohlaví", "civ"), "PETI": ("Petice", "ins"), "HOUS": ("Bydlení", "soc"),
+    "AFET": ("Zahraniční věci", "abr"),
+    "DROI": ("Lidská práva", "abr"),
+    "SEDE": ("Bezpečnost a obrana", "def"),
+    "DEVE": ("Rozvoj", "abr"),
+    "INTA": ("Mezinárodní obchod", "abr"),
+    "BUDG": ("Rozpočty", "fin"),
+    "CONT": ("Kontrola rozpočtu", "fin"),
+    "ECON": ("Hospodářské a měnové věci", "fin"),
+    "FISC": ("Daňové záležitosti", "fin"),
+    "EMPL": ("Zaměstnanost a sociální věci", "soc"),
+    "ENVI": ("Životní prostředí, klima a bezpečnost potravin", "env"),
+    "SANT": ("Veřejné zdraví", "soc"),
+    "ITRE": ("Průmysl, výzkum a energetika", "eco"),
+    "IMCO": ("Vnitřní trh a ochrana spotřebitelů", "eco"),
+    "TRAN": ("Doprava a cestovní ruch", "tra"),
+    "REGI": ("Regionální rozvoj", "fin"),
+    "AGRI": ("Zemědělství a rozvoj venkova", "agr"),
+    "PECH": ("Rybolov", "agr"),
+    "CULT": ("Kultura a vzdělávání", None),
+    "JURI": ("Právní záležitosti", "jus"),
+    "LIBE": ("Občanské svobody, spravedlnost a vnitřní věci", "jus"),
+    "AFCO": ("Ústavní záležitosti", "ins"),
+    "FEMM": ("Práva žen a rovnost pohlaví", "civ"),
+    "PETI": ("Petice", "ins"),
+    "HOUS": ("Bydlení", "soc"),
     "EUDS": ("Evropský štít demokracie", "ins"),
 }
 OEIL_URL = "https://oeil.secure.europarl.europa.eu/oeil/en/procedure-file?reference={label}"
@@ -147,11 +195,21 @@ def timeline(events: list[dict]) -> dict:
         dates = [e["date"] for e in marked if e["type"] in types]
         steps.append({"key": key, "label": label, "date": min(dates) if dates and reached is not None and i <= reached else None})
     plenary = [e["date"] for e in marked if stage_of[e["type"]] == 3]
-    last = next(({"date": e["date"], "type": e["type"], "label": EVENT_CS[e["type"]]}
-                 for e in sorted(events, key=lambda e: e["date"], reverse=True) if e["type"] in EVENT_CS), None)
-    return {"steps": steps, "reached": MILESTONE_KEYS[reached] if reached is not None else None,
-            "plenary_date": max(plenary) if plenary and reached is not None and reached >= 3 else None,
-            "last_event": last, "unmapped": unmapped}
+    last = next(
+        (
+            {"date": e["date"], "type": e["type"], "label": EVENT_CS[e["type"]]}
+            for e in sorted(events, key=lambda e: e["date"], reverse=True)
+            if e["type"] in EVENT_CS
+        ),
+        None,
+    )
+    return {
+        "steps": steps,
+        "reached": MILESTONE_KEYS[reached] if reached is not None else None,
+        "plenary_date": max(plenary) if plenary and reached is not None and reached >= 3 else None,
+        "last_event": last,
+        "unmapped": unmapped,
+    }
 
 
 def cz_roles(participants: list[dict], names: dict[int, str]) -> list[dict]:
@@ -187,21 +245,40 @@ def session_view(agenda: dict | None, own_work: dict | None, names: dict[int, st
         meta = next((docs[d] for d in it["docs"] if d in docs), {})
         pid = meta.get("procedure")
         label = labels.get(pid) if pid else None
-        cz = [{"mep_id": r["mep_id"], "name": names.get(r["mep_id"]), "role": r["role"], "role_cs": CZ_ROLE_CS[r["role"]]}
-              for d in it["docs"] for r in roles.get(doc_key(d), [])]
-        items.append({
-            "id": it["id"], "date": it["date"], "order": it["order"], "title_cs": it["title_cs"], "title_en": it["title_en"],
-            "docs": it["docs"], "legislative": it["legislative"], "stage": it.get("stage"),
-            "stage_cs": STAGE_CS.get(it.get("stage")) if it.get("stage") else None,
-            "procedure": {"id": pid, "label": label, "type": process_type(label),
-                          "url": OEIL_URL.format(label=label) if label else None} if pid else None,
-            "committee": committee_info(meta.get("committee")), "cz": cz,
-        })
+        cz = [
+            {"mep_id": r["mep_id"], "name": names.get(r["mep_id"]), "role": r["role"], "role_cs": CZ_ROLE_CS[r["role"]]}
+            for d in it["docs"]
+            for r in roles.get(doc_key(d), [])
+        ]
+        items.append(
+            {
+                "id": it["id"],
+                "date": it["date"],
+                "order": it["order"],
+                "title_cs": it["title_cs"],
+                "title_en": it["title_en"],
+                "docs": it["docs"],
+                "legislative": it["legislative"],
+                "stage": it.get("stage"),
+                "stage_cs": STAGE_CS.get(it.get("stage")) if it.get("stage") else None,
+                "procedure": {
+                    "id": pid,
+                    "label": label,
+                    "type": process_type(label),
+                    "url": OEIL_URL.format(label=label) if label else None,
+                }
+                if pid
+                else None,
+                "committee": committee_info(meta.get("committee")),
+                "cz": cz,
+            }
+        )
     return {"from": nxt["from"], "to": nxt["to"], "items": items, "fetched": (agenda or {}).get("fetched")}
 
 
-def procedures_view(proposals: dict | None, votes: dict[str, dict], names: dict[int, str],
-                    session: dict | None, today: str) -> tuple[list[dict], list[dict], int, list[str]]:
+def procedures_view(
+    proposals: dict | None, votes: dict[str, dict], names: dict[int, str], session: dict | None, today: str
+) -> tuple[list[dict], list[dict], int, list[str]]:
     """(rozpracované, odhlasované, počet procedur bez událostí, neznámé typy událostí). votes = vote_links()."""
     on_agenda = {i["procedure"]["id"]: i["date"] for i in (session or {}).get("items", []) if i.get("procedure")}
     since = (dt.date.fromisoformat(today) - dt.timedelta(days=DONE_DAYS)).isoformat()
@@ -218,10 +295,17 @@ def procedures_view(proposals: dict | None, votes: dict[str, dict], names: dict[
         tl = timeline(p["events"])
         unmapped.update(tl["unmapped"])
         row = {
-            "procedure": p["procedure"], "label": p.get("label"), "type": p.get("process_type"),
-            "title_cs": (p.get("title") or {}).get("cs"), "title_en": (p.get("title") or {}).get("en"),
-            "url": p.get("url"), "committee": committee_info(p.get("committee")), "cz": cz,
-            "steps": tl["steps"], "reached": tl["reached"], "last_event": tl["last_event"],
+            "procedure": p["procedure"],
+            "label": p.get("label"),
+            "type": p.get("process_type"),
+            "title_cs": (p.get("title") or {}).get("cs"),
+            "title_en": (p.get("title") or {}).get("en"),
+            "url": p.get("url"),
+            "committee": committee_info(p.get("committee")),
+            "cz": cz,
+            "steps": tl["steps"],
+            "reached": tl["reached"],
+            "last_event": tl["last_event"],
             "next_vote": on_agenda.get(p["procedure"]),
         }
         if tl["reached"] in ("plenary", "closed"):
@@ -230,9 +314,15 @@ def procedures_view(proposals: dict | None, votes: dict[str, dict], names: dict[
         else:
             active.append(row)
     # nahoře procedury na programu nejbližšího zasedání, pak nejblíž hlasování, pak podle poslední události
-    active.sort(key=lambda r: (r["next_vote"] is None, r["next_vote"] or "",
-                               -(MILESTONE_KEYS.index(r["reached"]) if r["reached"] else -1),
-                               -(int((r["last_event"] or {}).get("date", "0000-00-00").replace("-", ""))), r["procedure"]))
+    active.sort(
+        key=lambda r: (
+            r["next_vote"] is None,
+            r["next_vote"] or "",
+            -(MILESTONE_KEYS.index(r["reached"]) if r["reached"] else -1),
+            -(int((r["last_event"] or {}).get("date", "0000-00-00").replace("-", ""))),
+            r["procedure"],
+        )
+    )
     done.sort(key=lambda r: (r["plenary_date"], r["procedure"]), reverse=True)
     return active, done, missing, sorted(unmapped)
 
@@ -251,10 +341,14 @@ def build(data_dir: Path, today: str) -> dict:
     active, done, missing, unmapped = procedures_view(proposals, votes, names, session, today)
     return {
         "note": "Radar „Co se chystá“: program nejbližšího zasedání a legislativní procedury s českou stopou. "
-                "Generuje scripts/radar.py z agenda.json, proposals.json a own_work.json.",
+        "Generuje scripts/radar.py z agenda.json, proposals.json a own_work.json.",
         "sources": [{"name": "EP Open Data API v2", "url": "https://data.europarl.europa.eu/api/v2", "license": "CC BY 4.0"}],
         "updated": (agenda or {}).get("fetched"),
-        "session": session, "active": active, "done": done, "without_events": missing, "unmapped_events": unmapped,
+        "session": session,
+        "active": active,
+        "done": done,
+        "without_events": missing,
+        "unmapped_events": unmapped,
         "categories": sorted({c for _, (_, c) in COMMITTEES.items() if c}),
     }
 
@@ -265,8 +359,10 @@ def main(argv=None) -> int:
     today = dt.datetime.now(dt.timezone.utc).date().isoformat()
     radar = build(data_dir, today)
     (data_dir / "radar.json").write_text(json.dumps(radar, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-    print(f"radar: {len(radar['active'])} rozpracovaných, {len(radar['done'])} odhlasovaných, "
-          f"{radar['without_events']} bez událostí", file=sys.stderr)
+    print(
+        f"radar: {len(radar['active'])} rozpracovaných, {len(radar['done'])} odhlasovaných, {radar['without_events']} bez událostí",
+        file=sys.stderr,
+    )
     return 0
 
 

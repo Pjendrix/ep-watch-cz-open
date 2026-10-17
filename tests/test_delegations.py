@@ -4,21 +4,22 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 import delegations as dg  # noqa: E402
 
+
 # MOCK data: počty hlasů po státech [pro, proti, zdržel se, nehlasoval]
 def vote(i, n_for, n_against, result, final=False, date="2025-01-01"):
     return {"id": i, "date": date, "result": result, "is_final": final, "counts": {"for": n_for, "against": n_against}}
 
 
 CC = {
-    1: {"CZE": [3, 0, 0, 0], "AAA": [2, 1, 0, 0], "BBB": [0, 3, 0, 0]},   # CZE jednotně, AAA rozdělená
-    2: {"CZE": [1, 1, 0, 1], "AAA": [3, 0, 0, 0], "BBB": [1, 0, 0, 2]},   # BBB: jen jeden hlasující (nepočítá se)
-    3: {"CZE": [3, 0, 0, 0], "AAA": [0, 0, 3, 0], "BBB": [0, 3, 0, 0]},   # zdržení: AAA se neposuzuje
+    1: {"CZE": [3, 0, 0, 0], "AAA": [2, 1, 0, 0], "BBB": [0, 3, 0, 0]},  # CZE jednotně, AAA rozdělená
+    2: {"CZE": [1, 1, 0, 1], "AAA": [3, 0, 0, 0], "BBB": [1, 0, 0, 2]},  # BBB: jen jeden hlasující (nepočítá se)
+    3: {"CZE": [3, 0, 0, 0], "AAA": [0, 0, 3, 0], "BBB": [0, 3, 0, 0]},  # zdržení: AAA se neposuzuje
     9: {"CZE": [3, 0, 0, 0], "AAA": [3, 0, 0, 0], "BBB": [3, 0, 0, 0], "XXX": [3, 0, 0, 0]},  # poslední hlasování: velikosti
 }
 VOTES = [
-    vote(1, 11, 10, "ADOPTED", final=True),   # těsné; bez CZE (3 pro) by 8 : 10 -> zamítnuto = rozhodli
-    vote(2, 40, 10, "ADOPTED"),               # není těsné
-    vote(3, 30, 25, "ADOPTED"),               # těsné (5), bez BBB (0 pro, 3 proti) 30 : 22 stále přijato
+    vote(1, 11, 10, "ADOPTED", final=True),  # těsné; bez CZE (3 pro) by 8 : 10 -> zamítnuto = rozhodli
+    vote(2, 40, 10, "ADOPTED"),  # není těsné
+    vote(3, 30, 25, "ADOPTED"),  # těsné (5), bez BBB (0 pro, 3 proti) 30 : 22 stále přijato
     vote(9, 9, 0, "ADOPTED", date="2025-02-01"),
 ]
 

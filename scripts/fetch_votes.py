@@ -42,15 +42,34 @@ RESULTS = {"ADOPTED", "REJECTED", "LAPSED", "WITHDRAWN"}
 # Očekávané sloupce každé tabulky. Chybějící sloupec = změna formátu = chyba.
 TABLES = {
     "votes": [
-        "id", "timestamp", "display_title", "reference", "description",
-        "amendment_subject", "amendment_number", "is_main", "procedure_reference",
-        "procedure_title", "procedure_type", "procedure_stage", "count_for",
-        "count_against", "count_abstention", "count_did_not_vote", "result",
+        "id",
+        "timestamp",
+        "display_title",
+        "reference",
+        "description",
+        "amendment_subject",
+        "amendment_number",
+        "is_main",
+        "procedure_reference",
+        "procedure_title",
+        "procedure_type",
+        "procedure_stage",
+        "count_for",
+        "count_against",
+        "count_abstention",
+        "count_did_not_vote",
+        "result",
         "texts_adopted_reference",
     ],
     "member_votes": [
-        "vote_id", "member_id", "position", "country_code", "group_code",
-        "group_short_label", "national_party_id", "national_party_short_label",
+        "vote_id",
+        "member_id",
+        "position",
+        "country_code",
+        "group_code",
+        "group_short_label",
+        "national_party_id",
+        "national_party_short_label",
     ],
     "eurovoc_concepts": ["id", "label"],
     "eurovoc_concept_votes": ["vote_id", "eurovoc_concept_id"],
@@ -94,7 +113,7 @@ def stored_release(out_dir: Path) -> str | None:
     path = out_dir / "index.json"
     if not path.exists():
         return None
-    return ((json.loads(path.read_text(encoding="utf-8")).get("source") or {}).get("release"))
+    return (json.loads(path.read_text(encoding="utf-8")).get("source") or {}).get("release")
 
 
 def release_is_new(latest: str | None, stored: str | None) -> bool:
@@ -157,8 +176,9 @@ def load_votes(csv_dir: Path, since: str = TERM_START) -> pd.DataFrame:
     return v.sort_values(["timestamp", "id"])
 
 
-def load_member_votes(csv_dir: Path, vote_ids: set[int], country: str = COUNTRY, all_rows: list | None = None,
-                      country_counts: dict | None = None):
+def load_member_votes(
+    csv_dir: Path, vote_ids: set[int], country: str = COUNTRY, all_rows: list | None = None, country_counts: dict | None = None
+):
     """Načte member_votes po částech.
 
     Vrací (pozice poslanců daného státu, {vote_id: {group_code: [pro, proti, zdržel, nehlasoval]}}),
@@ -213,14 +233,11 @@ def load_topics(csv_dir: Path, vote_ids: set[int]) -> dict[int, dict[str, list]]
             topics.setdefault(vid, {}).setdefault(kind, []).append(item)
 
     ev = read_table(csv_dir, "eurovoc_concepts")
-    add(read_table(csv_dir, "eurovoc_concept_votes"), "eurovoc_concept_id", "eurovoc",
-        dict(zip(ev["id"], ev["label"], strict=False)))
+    add(read_table(csv_dir, "eurovoc_concept_votes"), "eurovoc_concept_id", "eurovoc", dict(zip(ev["id"], ev["label"], strict=False)))
     oe = read_table(csv_dir, "oeil_subjects")
-    add(read_table(csv_dir, "oeil_subject_votes"), "oeil_subject_code", "oeil",
-        dict(zip(oe["code"], oe["label"], strict=False)))
+    add(read_table(csv_dir, "oeil_subject_votes"), "oeil_subject_code", "oeil", dict(zip(oe["code"], oe["label"], strict=False)))
     geo = read_table(csv_dir, "geo_areas")
-    add(read_table(csv_dir, "geo_area_votes"), "geo_area_code", "geo",
-        dict(zip(geo["code"], geo["label"], strict=False)))
+    add(read_table(csv_dir, "geo_area_votes"), "geo_area_code", "geo", dict(zip(geo["code"], geo["label"], strict=False)))
     add(read_table(csv_dir, "responsible_committee_votes"), "committee_code", "committees", None)
 
     for t in topics.values():
@@ -241,24 +258,29 @@ def _int_or_none(value):
     return None if value is None else int(value)
 
 
-def build_months(votes: pd.DataFrame, mv: pd.DataFrame, topics: dict, release: str | None,
-                 group_counts: dict | None = None) -> dict[str, dict]:
+def build_months(
+    votes: pd.DataFrame, mv: pd.DataFrame, topics: dict, release: str | None, group_counts: dict | None = None
+) -> dict[str, dict]:
     group_counts = group_counts or {}
     by_vote = {vid: g.sort_values("member_id") for vid, g in mv.groupby("vote_id")}
     months: dict[str, dict] = {}
     for row in votes.itertuples(index=False):
         month = row.timestamp[:7]
         cz = by_vote.get(row.id)
-        positions = [] if cz is None else [
-            {
-                "member_id": int(p.member_id),
-                "position": p.position,
-                "group_code": _clean(p.group_code),
-                "national_party_id": _int_or_none(p.national_party_id),
-                "national_party": _clean(p.national_party_short_label),
-            }
-            for p in cz.itertuples(index=False)
-        ]
+        positions = (
+            []
+            if cz is None
+            else [
+                {
+                    "member_id": int(p.member_id),
+                    "position": p.position,
+                    "group_code": _clean(p.group_code),
+                    "national_party_id": _int_or_none(p.national_party_id),
+                    "national_party": _clean(p.national_party_short_label),
+                }
+                for p in cz.itertuples(index=False)
+            ]
+        )
         t = topics.get(row.id, {})
         vote = {
             "id": int(row.id),
@@ -271,10 +293,20 @@ def build_months(votes: pd.DataFrame, mv: pd.DataFrame, topics: dict, release: s
             "amendment_number": _clean(row.amendment_number),
             "is_main": bool(row.is_main),
             # typ hlasování a český popis podle pravidel (scripts/vote_kinds.py, scripts/labels_cs.py)
-            **dict(zip(("vote_kind", "inverted"), classify({
-                "is_main": bool(row.is_main), "description": _clean(row.description),
-                "amendment_subject": _clean(row.amendment_subject), "amendment_number": _clean(row.amendment_number),
-            }), strict=False)),
+            **dict(
+                zip(
+                    ("vote_kind", "inverted"),
+                    classify(
+                        {
+                            "is_main": bool(row.is_main),
+                            "description": _clean(row.description),
+                            "amendment_subject": _clean(row.amendment_subject),
+                            "amendment_number": _clean(row.amendment_number),
+                        }
+                    ),
+                    strict=False,
+                )
+            ),
             "description_cs": translate(_clean(row.description)),
             "procedure": {
                 "reference": _clean(row.procedure_reference),
@@ -300,16 +332,19 @@ def build_months(votes: pd.DataFrame, mv: pd.DataFrame, topics: dict, release: s
             "group_counts": dict(sorted(group_counts.get(int(row.id), {}).items())),
             "cz_positions": positions,
         }
-        months.setdefault(month, {
-            "month": month,
-            "source": {
-                "name": "HowTheyVote.eu",
-                "url": "https://github.com/HowTheyVote/data",
-                "license": "ODbL",
-                "release": release,
+        months.setdefault(
+            month,
+            {
+                "month": month,
+                "source": {
+                    "name": "HowTheyVote.eu",
+                    "url": "https://github.com/HowTheyVote/data",
+                    "license": "ODbL",
+                    "release": release,
+                },
+                "votes": [],
             },
-            "votes": [],
-        })["votes"].append(vote)
+        )["votes"].append(vote)
     return months
 
 
@@ -325,8 +360,9 @@ def write_months(months: dict[str, dict], out_dir: Path) -> None:
             f.write(dump(head)[:-1] + ',"votes":[\n' + ",\n".join(lines) + "\n]}\n")
 
 
-def write_index(months: dict[str, dict], groups: pd.DataFrame, out_dir: Path, release: str | None,
-                oeil: pd.DataFrame | None = None) -> None:
+def write_index(
+    months: dict[str, dict], groups: pd.DataFrame, out_dir: Path, release: str | None, oeil: pd.DataFrame | None = None
+) -> None:
     """index.json: seznam měsíců (pro web), frakce, které se v hlasováních vyskytují,
     a číselník témat OEIL (kód -> anglický název) pro souhrny podle témat."""
     used = {g for m in months.values() for v in m["votes"] for g in v["group_counts"]}
@@ -334,9 +370,9 @@ def write_index(months: dict[str, dict], groups: pd.DataFrame, out_dir: Path, re
         "source": next(iter(months.values()))["source"] if months else None,
         "months": [{"month": k, "votes": len(v["votes"])} for k, v in sorted(months.items())],
         "groups": [
-            {"code": r.code, "label": _clean(r.label), "short_label": _clean(r.short_label),
-             "official_label": _clean(r.official_label)}
-            for r in groups.sort_values("code").itertuples(index=False) if r.code in used
+            {"code": r.code, "label": _clean(r.label), "short_label": _clean(r.short_label), "official_label": _clean(r.official_label)}
+            for r in groups.sort_values("code").itertuples(index=False)
+            if r.code in used
         ],
         "oeil_subjects": {} if oeil is None else dict(sorted(zip(oeil["code"], oeil["label"], strict=False))),
     }
@@ -360,8 +396,14 @@ def mandate_windows(meps_path: Path, since: str = TERM_START) -> dict[str, tuple
     return windows
 
 
-def run(csv_dir: Path, out_dir: Path, release: str | None, since: str = TERM_START,
-        benchmarks_path: Path | None = None, delegations_path: Path | None = None) -> dict[str, dict]:
+def run(
+    csv_dir: Path,
+    out_dir: Path,
+    release: str | None,
+    since: str = TERM_START,
+    benchmarks_path: Path | None = None,
+    delegations_path: Path | None = None,
+) -> dict[str, dict]:
     votes = load_votes(csv_dir, since)
     ids = set(votes["id"])
     all_rows: list = []
@@ -370,28 +412,50 @@ def run(csv_dir: Path, out_dir: Path, release: str | None, since: str = TERM_STA
     topics = load_topics(csv_dir, ids)
     groups = read_table(csv_dir, "groups")
     months = build_months(votes, mv, topics, release, group_counts)
-    others = Counter(re.sub(r"\d+", "N", v["description"] or "(bez popisu)")
-                     for m in months.values() for v in m["votes"] if v["vote_kind"] == "other")
+    others = Counter(
+        re.sub(r"\d+", "N", v["description"] or "(bez popisu)") for m in months.values() for v in m["votes"] if v["vote_kind"] == "other"
+    )
     if others:
-        print("typ hlasování 'other' (doplnit do vote_kinds.py?): " +
-              "; ".join(f"{k} ×{n}" for k, n in others.most_common(10)), file=sys.stderr)
+        print(
+            "typ hlasování 'other' (doplnit do vote_kinds.py?): " + "; ".join(f"{k} ×{n}" for k, n in others.most_common(10)),
+            file=sys.stderr,
+        )
     write_months(months, out_dir)
     final_ids = {v["id"] for m in months.values() for v in m["votes"] if v["vote_kind"] in FINAL_KINDS}
     rows = pd.concat(all_rows, ignore_index=True) if all_rows else pd.DataFrame(columns=["vote_id", "member_id", "position", "group_code"])
-    bench = compute_benchmarks(zip(rows["vote_id"].astype(int), rows["member_id"].astype(int), rows["position"],
-                                   [g if isinstance(g, str) and g else None for g in rows["group_code"]], strict=False),
-                               group_counts, final_ids, windows=mandate_windows(out_dir.parent / "meps.json", since),
-                               vote_dates={int(i): d[:10] for i, d in zip(votes["id"], votes["timestamp"], strict=False)})
+    bench = compute_benchmarks(
+        zip(
+            rows["vote_id"].astype(int),
+            rows["member_id"].astype(int),
+            rows["position"],
+            [g if isinstance(g, str) and g else None for g in rows["group_code"]],
+            strict=False,
+        ),
+        group_counts,
+        final_ids,
+        windows=mandate_windows(out_dir.parent / "meps.json", since),
+        vote_dates={int(i): d[:10] for i, d in zip(votes["id"], votes["timestamp"], strict=False)},
+    )
     bench["source"] = {"release": release}
     (benchmarks_path or out_dir.parent / "benchmarks.json").write_text(
-        json.dumps(bench, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+        json.dumps(bench, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
+    )
     print(f"srovnání s EP: medián docházky {bench['ep']['attendance']} ({bench['ep']['meps']} poslanců)", file=sys.stderr)
-    vote_meta = [{"id": int(r.id), "date": r.timestamp[:10], "result": r.result, "is_final": int(r.id) in final_ids,
-                  "counts": {"for": int(r.count_for), "against": int(r.count_against)}} for r in votes.itertuples()]
+    vote_meta = [
+        {
+            "id": int(r.id),
+            "date": r.timestamp[:10],
+            "result": r.result,
+            "is_final": int(r.id) in final_ids,
+            "counts": {"for": int(r.count_for), "against": int(r.count_against)},
+        }
+        for r in votes.itertuples()
+    ]
     deleg = compute_delegations(country_counts, vote_meta, own=COUNTRY)
     deleg["source"] = {"release": release}
     (delegations_path or out_dir.parent / "delegations.json").write_text(
-        json.dumps(deleg, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+        json.dumps(deleg, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
+    )
     write_index(months, groups, out_dir, release, read_table(csv_dir, "oeil_subjects"))
     print(
         f"hlasování: {len(votes)} (hlavních {int(votes['is_main'].sum())}), "
@@ -408,8 +472,9 @@ def main(argv=None) -> int:
     p.add_argument("--release", help="tag releasu pro --csv-dir (jinak null)")
     p.add_argument("--cache-dir", type=Path, default=root / ".cache" / "htv")
     p.add_argument("--out-dir", type=Path, default=root / "data" / "votes")
-    p.add_argument("--check-release", action="store_true",
-                   help="nic nestahuje, jen vypíše new=true|false (nový export HowTheyVote proti datům v repu)")
+    p.add_argument(
+        "--check-release", action="store_true", help="nic nestahuje, jen vypíše new=true|false (nový export HowTheyVote proti datům v repu)"
+    )
     args = p.parse_args(argv)
 
     if args.check_release:

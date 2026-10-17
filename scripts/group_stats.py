@@ -18,8 +18,17 @@ SPLIT_LIMIT = 50
 
 
 def _blank() -> dict:
-    return {"attendance": [0, 0], "attendance_main": [0, 0], "majority": [0, 0], "majority_main": [0, 0],
-            "splits": 0, "splits_main": 0, "considered": 0, "considered_main": 0, "_split_rows": []}
+    return {
+        "attendance": [0, 0],
+        "attendance_main": [0, 0],
+        "majority": [0, 0],
+        "majority_main": [0, 0],
+        "splits": 0,
+        "splits_main": 0,
+        "considered": 0,
+        "considered_main": 0,
+        "_split_rows": [],
+    }
 
 
 def build_group_stats(votes: list[dict], skip: tuple[str, ...] = ("NI",)) -> dict[str, dict]:

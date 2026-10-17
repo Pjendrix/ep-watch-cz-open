@@ -72,8 +72,7 @@ def retry_after(response) -> float | None:
 class EPClient:
     """Tenký klient EP API s throttlingem, opakováním a cache organizací na disku."""
 
-    def __init__(self, cache_dir: Path | None = None, session: requests.Session | None = None,
-                 min_interval: float = MIN_INTERVAL):
+    def __init__(self, cache_dir: Path | None = None, session: requests.Session | None = None, min_interval: float = MIN_INTERVAL):
         self.session = session or requests.Session()
         self.cache_dir = cache_dir
         self.min_interval = min_interval
@@ -113,8 +112,7 @@ class EPClient:
     def list_meps(self, term: int = TERM, country: str = COUNTRY, page: int = 50) -> list[dict]:
         out, offset = [], 0
         while True:
-            payload = self.get("meps", {"parliamentary-term": term, "country-of-representation": country,
-                                        "offset": offset, "limit": page})
+            payload = self.get("meps", {"parliamentary-term": term, "country-of-representation": country, "offset": offset, "limit": page})
             require(payload, ["data"], "GET /meps")
             batch = payload["data"]
             for item in batch:
@@ -184,26 +182,44 @@ def parse_mep(person: dict, get_body) -> dict:
             mandates.append({"start": start, "end": end, "mandate_id": m.get("notation_codictMandateId")})
         elif cls == CLS_GROUP:
             b = get_body(org)
-            groups.append({
-                "org_id": b["identifier"], "code": _short(b.get("isVersionOf")), "short_label": b["label"],
-                "name_cs": _lang(b.get("prefLabel"), "cs"), "name_en": _lang(b.get("prefLabel"), "en"),
-                "role": _short(role), "start": start, "end": end,
-            })
+            groups.append(
+                {
+                    "org_id": b["identifier"],
+                    "code": _short(b.get("isVersionOf")),
+                    "short_label": b["label"],
+                    "name_cs": _lang(b.get("prefLabel"), "cs"),
+                    "name_en": _lang(b.get("prefLabel"), "en"),
+                    "role": _short(role),
+                    "start": start,
+                    "end": end,
+                }
+            )
         elif cls == CLS_PARTY:
             b = get_body(org)
-            parties.append({
-                "org_id": b["identifier"], "short_label": b["label"],
-                "name": _lang(b.get("prefLabel"), "cs") or _lang(b.get("prefLabel"), "en"),
-                "role": _short(role), "start": start, "end": end,
-            })
+            parties.append(
+                {
+                    "org_id": b["identifier"],
+                    "short_label": b["label"],
+                    "name": _lang(b.get("prefLabel"), "cs") or _lang(b.get("prefLabel"), "en"),
+                    "role": _short(role),
+                    "start": start,
+                    "end": end,
+                }
+            )
         elif cls and cls.startswith(CLS_COMMITTEE_PREFIX):
             b = get_body(org)
-            committees.append({
-                "org_id": b["identifier"], "code": _short(b.get("isVersionOf")) or b["label"],
-                "type": cls.removeprefix(CLS_COMMITTEE_PREFIX),
-                "name_cs": _lang(b.get("prefLabel"), "cs"), "name_en": _lang(b.get("prefLabel"), "en"),
-                "role": _short(role), "start": start, "end": end,
-            })
+            committees.append(
+                {
+                    "org_id": b["identifier"],
+                    "code": _short(b.get("isVersionOf")) or b["label"],
+                    "type": cls.removeprefix(CLS_COMMITTEE_PREFIX),
+                    "name_cs": _lang(b.get("prefLabel"), "cs"),
+                    "name_en": _lang(b.get("prefLabel"), "en"),
+                    "role": _short(role),
+                    "start": start,
+                    "end": end,
+                }
+            )
 
     if not mandates:
         raise FormatError(f"{where}: poslanec nemá mandát v {TERM}. období za ČR")

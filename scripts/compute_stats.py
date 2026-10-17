@@ -40,87 +40,87 @@ INDEPENDENT = "Independent"  # EP tak označuje poslance bez strany; nejde o str
 
 DEFINITIONS = {
     "attendance": "Účast na hlasování: v kolika jmenovitých hlasováních v době mandátu poslanec hlasoval (pro, proti nebo "
-                  "se zdržel). Nejde o prezenční docházku. Poslanec mohl být na jednání a nehlasovat, nebo chybět z důvodů, "
-                  "které data neuvádějí (nemoc, rodičovská, služební cesta).",
+    "se zdržel). Nejde o prezenční docházku. Poslanec mohl být na jednání a nehlasovat, nebo chybět z důvodů, "
+    "které data neuvádějí (nemoc, rodičovská, služební cesta).",
     "attendance_main": "Účast na hlasování jen u závěrečných hlasování: o celém textu, o prozatímní dohodě s Radou nebo o námitce "
-                       "proti aktu Komise. "
-                       "Nepočítají se návrhy na zamítnutí, mandáty k jednání s Radou ani žádosti o naléhavý postup.",
+    "proti aktu Komise. "
+    "Nepočítají se návrhy na zamítnutí, mandáty k jednání s Radou ani žádosti o naléhavý postup.",
     "vote_kind": "Typ hlasování určují pevná pravidla podle popisu hlasování v datech HowTheyVote (scripts/vote_kinds.py): "
-                 "závěrečné hlasování, prozatímní dohoda s Radou, námitka proti aktu Komise (hlas PRO = vznést námitku), "
-                 "návrh na zamítnutí (hlas PRO = text zamítnout), mandát k jednání, naléhavý postup, pozměňovací návrh, "
-                 "dílčí hlasování o části textu, procedurální hlasování, ostatní.",
+    "závěrečné hlasování, prozatímní dohoda s Radou, námitka proti aktu Komise (hlas PRO = vznést námitku), "
+    "návrh na zamítnutí (hlas PRO = text zamítnout), mandát k jednání, naléhavý postup, pozměňovací návrh, "
+    "dílčí hlasování o části textu, procedurální hlasování, ostatní.",
     "group_loyalty": "Hlasuje s frakcí: v kolika procentech hlasování hlasoval stejně jako většina jeho frakce (k datu "
-                     "hlasování). Vysoké ani nízké číslo samo o sobě není dobré ani špatné. Odchylky často vycházejí z "
-                     "postoje domácí strany nebo z národních zájmů. Počítá se jen tam, kde hlasoval a frakce měla "
-                     "jednoznačnou většinu (pro / proti / zdržet se). Nezařazení (NI) se nepočítají.",
+    "hlasování). Vysoké ani nízké číslo samo o sobě není dobré ani špatné. Odchylky často vycházejí z "
+    "postoje domácí strany nebo z národních zájmů. Počítá se jen tam, kde hlasoval a frakce měla "
+    "jednoznačnou většinu (pro / proti / zdržet se). Nezařazení (NI) se nepočítají.",
     "cz_agreement": "Podíl hlasování, kde poslanec hlasoval stejně jako většina ostatních českých poslanců, kteří hlasovali. "
-                    "Bez hlasování s nerozhodnou většinou.",
+    "Bez hlasování s nerozhodnou většinou.",
     "pairwise": "Shoda dvou poslanců: podíl hlasování, kde oba hlasovali a hlasovali stejně.",
     "outcome_agreement": "Soulad s výsledkem: podíl hlasování, kde poslanec hlasoval pro a návrh byl přijat, nebo hlasoval "
-                         "proti a návrh byl zamítnut. Počítají se jen hlasy pro a proti (zdržení a nehlasování ne) a jen "
-                         "hlasování s výsledkem přijato / zamítnuto (bez propadlých, stažených a bez výsledku). "
-                         "Číslo hlavně odráží velikost a pozici frakce: poslanci velkých frakcí, které tvoří většinu, "
-                         "mají soulad vysoký, poslanci menších a opozičních frakcí nižší. Hlasovat proti většině je "
-                         "legitimní opoziční role, nízké číslo neznamená horší práci.",
+    "proti a návrh byl zamítnut. Počítají se jen hlasy pro a proti (zdržení a nehlasování ne) a jen "
+    "hlasování s výsledkem přijato / zamítnuto (bez propadlých, stažených a bez výsledku). "
+    "Číslo hlavně odráží velikost a pozici frakce: poslanci velkých frakcí, které tvoří většinu, "
+    "mají soulad vysoký, poslanci menších a opozičních frakcí nižší. Hlasovat proti většině je "
+    "legitimní opoziční role, nízké číslo neznamená horší práci.",
     "group_outcome_agreement": "Průměr frakce: soulad s výsledkem všech poslanců jeho frakce (z celého EP, včetně něj) "
-                               "ve stejných hlasováních, ve kterých se počítá jemu.",
+    "ve stejných hlasováních, ve kterých se počítá jemu.",
     "close_votes": f"Těsné hlasování: rozdíl mezi hlasy pro a proti je nejvýš {CLOSE_MARGIN} (tolik křesel má ČR).",
     "decisive_votes": "Těsná hlasování, kde rozhodly české hlasy: těsné hlasování, které by bez hlasů pro a proti českých poslanců dopadlo "
-                      "opačně (prostá většina, při rovnosti zamítnuto). Vynechávají se hlasování, jejichž oficiální "
-                      "výsledek neodpovídá prosté většině (vyžadovala jinou většinu), protože u nich nelze kontrafakt "
-                      "spolehlivě spočítat.",
+    "opačně (prostá většina, při rovnosti zamítnuto). Vynechávají se hlasování, jejichž oficiální "
+    "výsledek neodpovídá prosté většině (vyžadovala jinou většinu), protože u nich nelze kontrafakt "
+    "spolehlivě spočítat.",
     "delegations": "Srovnání s delegacemi podobné velikosti: stejná čísla jako u české delegace (jednotnost, těsná hlasování, "
-                   "která by bez hlasů delegace dopadla opačně) spočítaná stejnými pravidly pro delegace států s 20–22 "
-                   "poslanci (podle počtu poslanců u posledního hlasování v datech). Kontrafakt „bez hlasů delegace by "
-                   "hlasování dopadlo opačně“ platí pro jakoukoli skupinu poslanců, jejíž čistý rozdíl pro/proti převýší "
-                   "celkový rozdíl, takže nic neříká o větším vlivu české delegace. U ostatních států se berou všichni "
-                   "poslanci, které HowTheyVote u hlasování vede (mandáty z EP API máme jen pro české poslance).",
+    "která by bez hlasů delegace dopadla opačně) spočítaná stejnými pravidly pro delegace států s 20–22 "
+    "poslanci (podle počtu poslanců u posledního hlasování v datech). Kontrafakt „bez hlasů delegace by "
+    "hlasování dopadlo opačně“ platí pro jakoukoli skupinu poslanců, jejíž čistý rozdíl pro/proti převýší "
+    "celkový rozdíl, takže nic neříká o větším vlivu české delegace. U ostatních států se berou všichni "
+    "poslanci, které HowTheyVote u hlasování vede (mandáty z EP API máme jen pro české poslance).",
     "presence": "Prezence na zasedání (podle EP): v kolika dnech jednání v plénu v době mandátu byl poslanec zapsán v prezenční listině EP "
-                "(EP Open Data, meetings). Počítají se jen dny, ke kterým listina už existuje (budoucí dny se nepočítají jako neúčast). "
-                "Kdo je v listině i mezi omluvenými, je přítomen; omluvení se ukazují zvlášť. Je to jiná metrika než Účast na hlasování, "
-                "která počítá hlasy z HowTheyVote: poslanec mohl být na jednání a nehlasovat, nebo se hlasování nezúčastnit z jiných důvodů. "
-                "Bez mediánu EP a bez pořadí.",
+    "(EP Open Data, meetings). Počítají se jen dny, ke kterým listina už existuje (budoucí dny se nepočítají jako neúčast). "
+    "Kdo je v listině i mezi omluvenými, je přítomen; omluvení se ukazují zvlášť. Je to jiná metrika než Účast na hlasování, "
+    "která počítá hlasy z HowTheyVote: poslanec mohl být na jednání a nehlasovat, nebo se hlasování nezúčastnit z jiných důvodů. "
+    "Bez mediánu EP a bez pořadí.",
     "speeches": "Projevy v plénu: počet ústních projevů v rozpravách v době mandátu podle EP Open Data (endpoint speeches) a jejich "
-                "celková délka z časových značek zdroje (jen u projevů, kde jsou obě značky). Písemná prohlášení se počítají zvlášť a "
-                "do projevů se nesčítají, protože se dají psát hromadně. Jde o počet a čas, ne o kvalitu ani vliv; do třetin v "
-                "delegaci nevstupuje a medián EP se neuvádí (projevy všech poslanců EP by znamenaly tisíce dotazů týdně). "
-                "Pozměňovací návrhy ve výborech tu nejsou: strojově čitelná data (Parltrack) jsou naposledy z února 2026.",
+    "celková délka z časových značek zdroje (jen u projevů, kde jsou obě značky). Písemná prohlášení se počítají zvlášť a "
+    "do projevů se nesčítají, protože se dají psát hromadně. Jde o počet a čas, ne o kvalitu ani vliv; do třetin v "
+    "delegaci nevstupuje a medián EP se neuvádí (projevy všech poslanců EP by znamenaly tisíce dotazů týdně). "
+    "Pozměňovací návrhy ve výborech tu nejsou: strojově čitelná data (Parltrack) jsou naposledy z února 2026.",
     "against_group": "Kde hlasoval jinak než frakce: poslanec hlasoval (pro / proti / zdržel se) jinak, než jednoznačná "
-                     "většina jeho frakce k datu hlasování. U každého takového hlasování se zjišťuje, jak hlasovala většina "
-                     "jeho české strany (ostatní poslanci strany, kteří k datu hlasování měli mandát a hlasovali). Když strana "
-                     "nemá jiného hlasujícího poslance nebo je většina nerozhodná, údaj není (null) a nepočítá se. Častá shoda "
-                     "se stranou při odchylce od frakce znamená, že poslanec sleduje linii domácí strany.",
+    "většina jeho frakce k datu hlasování. U každého takového hlasování se zjišťuje, jak hlasovala většina "
+    "jeho české strany (ostatní poslanci strany, kteří k datu hlasování měli mandát a hlasovali). Když strana "
+    "nemá jiného hlasujícího poslance nebo je většina nerozhodná, údaj není (null) a nepočítá se. Častá shoda "
+    "se stranou při odchylce od frakce znamená, že poslanec sleduje linii domácí strany.",
     "cz_split": "Míra rozdělení mezi Čechy: menší ze dvou čísel (pro, proti) mezi českými poslanci v mandátu, děleno "
-                "součtem pro a proti. 0 = všichni na jedné straně, 0,5 = půl na půl. Zdržení a nehlasování se "
-                "nepočítají. Při stejné míře rozhoduje větší počet hlasujících.",
+    "součtem pro a proti. 0 = všichni na jedné straně, 0,5 = půl na půl. Zdržení a nehlasování se "
+    "nepočítají. Při stejné míře rozhoduje větší počet hlasujících.",
     "cz_unity": "Češi jednotně: podíl hlasování, ve kterých všichni čeští poslanci, kteří hlasovali pro nebo proti, "
-                "byli na stejné straně (počítají se jen hlasování, kde pro nebo proti hlasovali aspoň dva). "
-                f"Výrazné rozdělení: menšina tvoří aspoň {int(STRONG_SPLIT * 100)} % hlasů pro a proti.",
+    "byli na stejné straně (počítají se jen hlasování, kde pro nebo proti hlasovali aspoň dva). "
+    f"Výrazné rozdělení: menšina tvoří aspoň {int(STRONG_SPLIT * 100)} % hlasů pro a proti.",
     "party_cohesion": "Jednotnost strany: podíl hlasování, kde aspoň dva poslanci strany hlasovali a všichni hlasovali "
-                      "stejně (pro / proti / zdržel se). Příslušnost ke straně k datu hlasování.",
+    "stejně (pro / proti / zdržel se). Příslušnost ke straně k datu hlasování.",
     "own_work": "Práce na textech: zprávy (poslanec je zpravodaj), stínové zprávy, stanoviska výborů, návrhy usnesení "
-                "(poslanec je signatář) a otázky Komisi a Radě podle EP Open Data. U zpráv a usnesení se ukazuje "
-                "výsledek posledního hlavního hlasování o textu v plénu (HowTheyVote), vždy po typech zvlášť. "
-                "Samostatný návrh usnesení, který nahradil společný návrh, se počítá jako „nahrazený“, ne jako "
-                "zamítnutý. Kde HowTheyVote nemá jmenovité hlasování (ještě neproběhlo, nebo se hlasovalo "
-                "zvednutím ruky či tajně), ukazuje se „bez jmenovitého hlasování“. Stanoviska výborů výsledek nemají. Pozměňovací návrhy nejsou zahrnuté: v plénu je zdroje "
-                "neuvádějí podle jmen, ve výborech nejsou dostupná aktuální data. Jedna role v jedné proceduře se "
-                "počítá jednou.",
+    "(poslanec je signatář) a otázky Komisi a Radě podle EP Open Data. U zpráv a usnesení se ukazuje "
+    "výsledek posledního hlavního hlasování o textu v plénu (HowTheyVote), vždy po typech zvlášť. "
+    "Samostatný návrh usnesení, který nahradil společný návrh, se počítá jako „nahrazený“, ne jako "
+    "zamítnutý. Kde HowTheyVote nemá jmenovité hlasování (ještě neproběhlo, nebo se hlasovalo "
+    "zvednutím ruky či tajně), ukazuje se „bez jmenovitého hlasování“. Stanoviska výborů výsledek nemají. Pozměňovací návrhy nejsou zahrnuté: v plénu je zdroje "
+    "neuvádějí podle jmen, ve výborech nejsou dostupná aktuální data. Jedna role v jedné proceduře se "
+    "počítá jednou.",
     "work_profile": "Profil práce na textech (stránka Práce na textech) počítá přidělené role bez ohledu na výsledek "
-                    "hlasování: zprávy a stanoviska, které poslanec vede jako zpravodaj, a zprávy a stanoviska, které "
-                    "vyjednává jako stínový zpravodaj za frakci. U každé kategorie se ukazuje třetina mezi současnými "
-                    "poslanci delegace (horní třetina = alespoň 2/3 kolegů má méně), nula třetinu nemá. Celkové pořadí "
-                    "ani body záměrně nepočítáme: zpráva a stanovisko nejsou stejná práce a žádná váha by nebyla "
-                    "podložená. Podepsané návrhy usnesení se ukazují zvlášť a do třetin nevstupují: podepisují je "
-                    "desítky poslanců za frakci a společné návrhy sepisují jen některé frakce, takže počet vypovídá "
-                    "hlavně o frakci. Funkce (předseda či místopředseda výboru, vedení frakce) se uvádějí podle EP "
-                    "jako kontext a čísla neupravují. Zprávy si frakce rozdělují podle bodů úměrných velikosti, "
-                    "takže malé frakce a nezařazení jich dostávají méně; ani to se do čísel nepřepočítává. Kdo byl v mandátu méně než "
-                    "75 % období (od začátku období do posledního hlasování v datech), třetinu nedostane: srovnání počtů s kolegy, kteří mají "
-                    "za sebou celé období, by vyznělo jako verdikt. Čísla zůstávají.",
+    "hlasování: zprávy a stanoviska, které poslanec vede jako zpravodaj, a zprávy a stanoviska, které "
+    "vyjednává jako stínový zpravodaj za frakci. U každé kategorie se ukazuje třetina mezi současnými "
+    "poslanci delegace (horní třetina = alespoň 2/3 kolegů má méně), nula třetinu nemá. Celkové pořadí "
+    "ani body záměrně nepočítáme: zpráva a stanovisko nejsou stejná práce a žádná váha by nebyla "
+    "podložená. Podepsané návrhy usnesení se ukazují zvlášť a do třetin nevstupují: podepisují je "
+    "desítky poslanců za frakci a společné návrhy sepisují jen některé frakce, takže počet vypovídá "
+    "hlavně o frakci. Funkce (předseda či místopředseda výboru, vedení frakce) se uvádějí podle EP "
+    "jako kontext a čísla neupravují. Zprávy si frakce rozdělují podle bodů úměrných velikosti, "
+    "takže malé frakce a nezařazení jich dostávají méně; ani to se do čísel nepřepočítává. Kdo byl v mandátu méně než "
+    "75 % období (od začátku období do posledního hlasování v datech), třetinu nedostane: srovnání počtů s kolegy, kteří mají "
+    "za sebou celé období, by vyznělo jako verdikt. Čísla zůstávají.",
     "topics": "Témata podle Legislativní observatoře EP (OEIL, úroveň 2) z HowTheyVote. České názvy jsou ruční překlad "
-              "(data/manual/topics_cs.json), OEIL je jen anglicky a francouzsky. Jedno hlasování "
-              "může patřit do více témat. Ukazuje se deset témat s nejvíce hlasováními v celém období.",
+    "(data/manual/topics_cs.json), OEIL je jen anglicky a francouzsky. Jedno hlasování "
+    "může patřit do více témat. Ukazuje se deset témat s nejvíce hlasováními v celém období.",
 }
 
 
@@ -275,8 +275,7 @@ def party_majority(pos: dict, active: list[dict]) -> str | None:
     party = pos.get("national_party_id")
     if party is None or pos.get("national_party") == INDEPENDENT:
         return None
-    mates = [o["position"] for o in active
-             if o is not pos and o.get("national_party_id") == party and o["position"] in VOTED]
+    mates = [o["position"] for o in active if o is not pos and o.get("national_party_id") == party and o["position"] in VOTED]
     return majority(Counter(mates)) if mates else None
 
 
@@ -308,8 +307,16 @@ def compute(meps: list[dict], votes: list[dict], topics: list[str] | None = None
             gm = group_majority(vote["group_counts"], p["group_code"])
             if p["position"] in VOTED and gm is not None and p["position"] != gm:
                 pm = party_majority(p, active)
-                against[i].append({"id": vote["id"], "is_final": is_final(vote), "position": p["position"],
-                                   "group_code": p["group_code"], "group_majority": gm, "party_majority": pm})
+                against[i].append(
+                    {
+                        "id": vote["id"],
+                        "is_final": is_final(vote),
+                        "position": p["position"],
+                        "group_code": p["group_code"],
+                        "group_majority": gm,
+                        "party_majority": pm,
+                    }
+                )
             if alt is not None:
                 decisive[i].append({"id": vote["id"], "position": p["position"]})
         voted = [p for p in active if p["position"] in VOTED]
@@ -349,6 +356,7 @@ def compute(meps: list[dict], votes: list[dict], topics: list[str] | None = None
 def last_session_dates(dates: list[str], max_gap_days: int = 3) -> list[str]:
     """Dny posledního zasedání: od posledního dne zpět, dokud mezera mezi dny nepřesáhne max_gap_days."""
     import datetime as dt
+
     days = sorted(set(dates))
     if not days:
         return []
@@ -388,19 +396,29 @@ def analyze_votes(meps: list[dict], votes: list[dict], n_all: int = 100, n_main:
             close.append({"id": vote["id"], "is_final": is_final(vote)})
         alt = decisive_alternative(vote, active)
         if alt is not None:
-            decisive.append({"id": vote["id"], "alternative_result": alt, "is_final": is_final(vote),
-                             "vote_kind": kind_of(vote)})
+            decisive.append({"id": vote["id"], "alternative_result": alt, "is_final": is_final(vote), "vote_kind": kind_of(vote)})
         sp = cz_split(active)
         if sp is not None:
-            splits.append({"id": vote["id"], "date": vote["date"], "is_final": is_final(vote),
-                           "split": round(sp[0], 4), "for": sp[1], "against": sp[2]})
+            splits.append(
+                {
+                    "id": vote["id"],
+                    "date": vote["date"],
+                    "is_final": is_final(vote),
+                    "split": round(sp[0], 4),
+                    "for": sp[1],
+                    "against": sp[2],
+                }
+            )
     rank = lambda xs: sorted(xs, key=lambda x: (-x["split"], -(x["for"] + x["against"]), x["date"], x["id"]))
     session = set(last_session_dates([v["date"] for v in votes]))
     session_votes = [v for v in votes if v["date"] in session]
     sess_unity = [sum(unity_by_date[d][i] for d in session) for i in range(3)]
     return {
-        "unity": {**unity, "strong_threshold": STRONG_SPLIT,
-                  "last_session": {"united": sess_unity[0], "considered": sess_unity[1], "strong_split": sess_unity[2]}},
+        "unity": {
+            **unity,
+            "strong_threshold": STRONG_SPLIT,
+            "last_session": {"united": sess_unity[0], "considered": sess_unity[1], "strong_split": sess_unity[2]},
+        },
         "close": {"count": len(close), "count_main": sum(x["is_final"] for x in close), "ids": [x["id"] for x in close]},
         "decisive": list(reversed(decisive)),
         "splits": {
@@ -435,8 +453,7 @@ def compute_parties(meps: list[dict], votes: list[dict]) -> dict:
             if p.get("national_party_id") is not None and p["national_party_id"] not in skip:
                 by_party[p["national_party_id"]].append(p)
         for party, members in by_party.items():
-            st = out.setdefault(party, {"total": empty_metrics(), "cohesion": [0, 0], "cohesion_main": [0, 0],
-                                        "splits": []})
+            st = out.setdefault(party, {"total": empty_metrics(), "cohesion": [0, 0], "cohesion_main": [0, 0], "splits": []})
             for p in members:
                 add_vote(st["total"], vote, p, [o["position"] for o in active if o is not p])
             voted = [p["position"] for p in members if p["position"] in VOTED]
@@ -450,11 +467,15 @@ def compute_parties(meps: list[dict], votes: list[dict]) -> dict:
     result = {}
     for party, st in sorted(out.items()):
         splits = list(reversed(st.pop("splits")))
-        result[str(party)] = {**st, "splits": {
-            "count": len(splits), "count_main": sum(x["is_final"] for x in splits),
-            "recent": [x["id"] for x in splits[:20]],
-            "recent_main": [x["id"] for x in splits if x["is_final"]][:20],
-        }}
+        result[str(party)] = {
+            **st,
+            "splits": {
+                "count": len(splits),
+                "count_main": sum(x["is_final"] for x in splits),
+                "recent": [x["id"] for x in splits[:20]],
+                "recent_main": [x["id"] for x in splits if x["is_final"]][:20],
+            },
+        }
     return result
 
 
@@ -468,8 +489,7 @@ def derive_group_codes(meps: list[dict], votes: list[dict]) -> dict[str, str]:
             m = by_id.get(p["member_id"])
             if not m or p["group_code"] is None:
                 continue
-            ep = [g["code"] for g in m["groups"]
-                  if g["start"] <= vote["date"] and (g["end"] is None or vote["date"] <= g["end"])]
+            ep = [g["code"] for g in m["groups"] if g["start"] <= vote["date"] and (g["end"] is None or vote["date"] <= g["end"])]
             if len(ep) == 1:
                 pairs[p["group_code"]][ep[0]] += 1
     return {htv: c.most_common(1)[0][0] for htv, c in pairs.items() if len(c) == 1}
@@ -511,6 +531,7 @@ def logo_aspect(path: Path) -> float | None:
                 return round(dims[0] / dims[1], 3)
             return None
         from PIL import Image
+
         with Image.open(path) as im:
             w, h = im.size
         return round(w / h, 3) if w and h else None
@@ -569,13 +590,19 @@ def identity(manual: dict, logos: dict, key: str, assets: Path, kind_dir: str) -
     chart = m.get("chart_color") or m.get("color")
     lg = logos.get(key) or {}
     logo = lg.get("logo") or m.get("logo") or find_logo(assets, kind_dir, key)
-    return {"color": brand or chart, "brand_color": brand, "chart_color": chart or brand,
-            "logo": logo, "logo_source": lg.get("logo_source"),
-            "logo_aspect": logo_aspect(assets.parent / logo) if logo else None}
+    return {
+        "color": brand or chart,
+        "brand_color": brand,
+        "chart_color": chart or brand,
+        "logo": logo,
+        "logo_source": lg.get("logo_source"),
+        "logo_aspect": logo_aspect(assets.parent / logo) if logo else None,
+    }
 
 
-def build_groups(index_groups: list[dict], meps: list[dict], votes: list[dict], assets: Path,
-                 manual: dict | None = None, logos: dict | None = None) -> list[dict]:
+def build_groups(
+    index_groups: list[dict], meps: list[dict], votes: list[dict], assets: Path, manual: dict | None = None, logos: dict | None = None
+) -> list[dict]:
     manual = (manual or {}).get("groups", {})
     logos = (logos or {}).get("groups", {})
     mapping = derive_group_codes(meps, votes)
@@ -583,14 +610,16 @@ def build_groups(index_groups: list[dict], meps: list[dict], votes: list[dict], 
     out = []
     for g in index_groups:
         ep_code = mapping.get(g["code"])
-        out.append({
-            "code": g["code"],
-            "ep_code": ep_code,
-            "short_label": g["short_label"],
-            "label": g["label"],
-            "name_cs": names_cs.get(ep_code),
-            **identity(manual, logos, g["code"], assets, "ep"),
-        })
+        out.append(
+            {
+                "code": g["code"],
+                "ep_code": ep_code,
+                "short_label": g["short_label"],
+                "label": g["label"],
+                "name_cs": names_cs.get(ep_code),
+                **identity(manual, logos, g["code"], assets, "ep"),
+            }
+        )
     return out
 
 
@@ -631,7 +660,7 @@ def procedure_titles(data_dir: Path) -> dict[str, str]:
     if state_path.exists():
         for meta in json.loads(state_path.read_text(encoding="utf-8")).get("procedures", {}).values():
             labels = meta.get("label")
-            for label in (labels if isinstance(labels, list) else [labels]):
+            for label in labels if isinstance(labels, list) else [labels]:
                 if label and meta.get("title_cs"):
                     out[label] = meta["title_cs"]
     return out
@@ -662,6 +691,7 @@ def load_votes(votes_dir: Path) -> tuple[dict, list[dict]]:
 
 def build_own_work(data_dir: Path, votes: list[dict]) -> dict | None:
     import own_work
+
     proposals_path, state_path = data_dir / "proposals.json", data_dir / "proposals_state.json"
     if not proposals_path.exists() or not state_path.exists():
         return None
@@ -677,16 +707,27 @@ def build_own_work(data_dir: Path, votes: list[dict]) -> dict | None:
     members = None
     if ref and meps_path.exists():
         meps = json.loads(meps_path.read_text(encoding="utf-8"))["meps"]
-        members = {str(m["id"]): min(x["start"] for x in m["mandates"]) for m in meps
-                   if any(x["start"] <= ref and (x["end"] is None or ref <= x["end"]) for x in m["mandates"])}
+        members = {
+            str(m["id"]): min(x["start"] for x in m["mandates"])
+            for m in meps
+            if any(x["start"] <= ref and (x["end"] is None or ref <= x["end"]) for x in m["mandates"])
+        }
     roles = {str(k): own_work.roles(v) for k, v in linked.items()}
     profile = own_work.delegation_profile(roles, members, until=ref)
     return {
-        "source": proposals["source"], "updated": state.get("updated"), "complete": state.get("complete", False),
+        "source": proposals["source"],
+        "updated": state.get("updated"),
+        "complete": state.get("complete", False),
         "type_labels": own_work.TYPE_LABELS,
-        "meps": {str(k): {"summary": own_work.summarize(v), "passed": passed[str(k)],
-                          "roles": {**roles[str(k)], "delegation": profile.get(str(k))},
-                          "items": v} for k, v in sorted(linked.items())},
+        "meps": {
+            str(k): {
+                "summary": own_work.summarize(v),
+                "passed": passed[str(k)],
+                "roles": {**roles[str(k)], "delegation": profile.get(str(k))},
+                "items": v,
+            }
+            for k, v in sorted(linked.items())
+        },
     }
 
 
@@ -706,11 +747,11 @@ def run(data_dir: Path, assets: Path) -> dict:
         "meps": compute(meps, votes, topics),
         "parties": compute_parties(meps, votes),
         "votes_analysis": analyze_votes(meps, votes),
-        "topics": [{"code": t, "label": index.get("oeil_subjects", {}).get(t),
-                    "votes": sum(t in topic_codes(v) for v in votes)} for t in topics],
+        "topics": [
+            {"code": t, "label": index.get("oeil_subjects", {}).get(t), "votes": sum(t in topic_codes(v) for v in votes)} for t in topics
+        ],
     }
-    write = lambda name, obj: (data_dir / name).write_text(
-        json.dumps(obj, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    write = lambda name, obj: (data_dir / name).write_text(json.dumps(obj, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     write("stats.json", stats)
     own = build_own_work(data_dir, votes)
     if own is not None:

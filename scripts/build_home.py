@@ -71,8 +71,12 @@ def build(data_dir: Path) -> dict:
     def order(m: dict):
         p = by_id.get(m["id"], {})
         g = p.get("group_code") or (m.get("group") or {}).get("code") or "NI"
-        return (GROUP_ORDER.index(g) if g in GROUP_ORDER else len(GROUP_ORDER), p.get("national_party") or "",
-                m.get("sort_label") or m["name"])
+        return (
+            GROUP_ORDER.index(g) if g in GROUP_ORDER else len(GROUP_ORDER),
+            p.get("national_party") or "",
+            m.get("sort_label") or m["name"],
+        )
+
     seats.sort(key=order)
 
     out_votes = []
@@ -83,20 +87,37 @@ def build(data_dir: Path) -> dict:
             p = pos.get(m["id"])
             if p and p["position"] not in POS_CODE:
                 raise FormatError(f"hlasování {v['id']}: neznámá pozice {p['position']}")
-            ppl.append({"id": m["id"], "name": _name(m),
-                        "party": (p.get("national_party") if p else None),
-                        "ind": bool(p and str(p.get("national_party_id")) in independent),
-                        "group": (p.get("group_code") if p else None),
-                        "pos": POS_CODE[p["position"]] if p else "X"})
+            ppl.append(
+                {
+                    "id": m["id"],
+                    "name": _name(m),
+                    "party": (p.get("national_party") if p else None),
+                    "ind": bool(p and str(p.get("national_party_id")) in independent),
+                    "group": (p.get("group_code") if p else None),
+                    "pos": POS_CODE[p["position"]] if p else "X",
+                }
+            )
         k = kind_of(v)
-        out_votes.append({"id": v["id"], "date": v["date"], "month": v["date"][:7], "title": v.get("title_cs") or v["title"],
-                          "kind": k, "kind_label": KIND_LABELS.get(k, k), "result": v.get("result"),
-                          # téma ze stejné funkce jako čip v seznamu hlasování (categories.py), první = hlavní
-                          "topics": [{"slug": c, "label": CAT_LABEL[c]} for c in categories_for(v)],
-                          # česká stopa: zpravodaj / stínový zpravodaj zprávy (vote_roles.json z own_work)
-                          "trace": [{"mep_id": r["mep_id"], "name": _name(meps[r["mep_id"]]) if r["mep_id"] in meps else None, "role": r["role"]}
-                                    for r in roles.get(str(v["id"]), [])],
-                          "counts": {c: sum(1 for x in ppl if x["pos"] == c) for c in "FABNX"}, "ppl": ppl})
+        out_votes.append(
+            {
+                "id": v["id"],
+                "date": v["date"],
+                "month": v["date"][:7],
+                "title": v.get("title_cs") or v["title"],
+                "kind": k,
+                "kind_label": KIND_LABELS.get(k, k),
+                "result": v.get("result"),
+                # téma ze stejné funkce jako čip v seznamu hlasování (categories.py), první = hlavní
+                "topics": [{"slug": c, "label": CAT_LABEL[c]} for c in categories_for(v)],
+                # česká stopa: zpravodaj / stínový zpravodaj zprávy (vote_roles.json z own_work)
+                "trace": [
+                    {"mep_id": r["mep_id"], "name": _name(meps[r["mep_id"]]) if r["mep_id"] in meps else None, "role": r["role"]}
+                    for r in roles.get(str(v["id"]), [])
+                ],
+                "counts": {c: sum(1 for x in ppl if x["pos"] == c) for c in "FABNX"},
+                "ppl": ppl,
+            }
+        )
 
     # --- čísla pro pruh faktů a další bloky (jen čtení existujících souborů) ---
     today_active = [m for m in overview["meps"] if any(not x.get("end") for x in m["mandates"])]
@@ -115,22 +136,39 @@ def build(data_dir: Path) -> dict:
     index = _read(data_dir / "votes" / "index.json")
     release = overview["sources"]["votes"].get("release")
     facts = {
-        "meps_active": len(today_active), "parties": len(named), "no_party": no_party,
-        "votes_total": unity["considered"], "votes_from": overview["period"]["from"],
+        "meps_active": len(today_active),
+        "parties": len(named),
+        "no_party": no_party,
+        "votes_total": unity["considered"],
+        "votes_from": overview["period"]["from"],
         "data_day": release if release and len(release) == 10 and release[4] == "-" else overview["period"]["to"],
         "monthly": [{"month": m["month"], "votes": m["votes"]} for m in index["months"]],
-        "united_final": unity["united_final"], "considered_final": unity["considered_final"],
+        "united_final": unity["united_final"],
+        "considered_final": unity["considered_final"],
         "decisive": len(decisive["votes"]),
-        "work": {"meps": work["totals"]["meps"], "speeches": work["totals"]["speeches"], "questions": work["totals"]["questions"],
-                 "reports_lead": work["totals"]["reports_lead"], "updated": work["updated"]},
+        "work": {
+            "meps": work["totals"]["meps"],
+            "speeches": work["totals"]["speeches"],
+            "questions": work["totals"]["questions"],
+            "reports_lead": work["totals"]["reports_lead"],
+            "updated": work["updated"],
+        },
     }
     # Program příštího zasedání (fetch_agenda.py) s českou stopou; bez programu None a blok se nezobrazí.
     from agenda import agenda_view
+
     agenda_path, own_path = data_dir / "agenda.json", data_dir / "own_work.json"
-    agenda = agenda_view(_read(agenda_path) if agenda_path.exists() else None,
-                         _read(own_path) if own_path.exists() else None, {m["id"]: _name(m) for m in overview["meps"]})
-    return {"note": "Pět nejnovějších závěrečných hlasování (bez výběru) a čísla pro úvodní stránku. Generuje scripts/build_home.py.",
-            "votes": out_votes, "facts": facts, "agenda": agenda}
+    agenda = agenda_view(
+        _read(agenda_path) if agenda_path.exists() else None,
+        _read(own_path) if own_path.exists() else None,
+        {m["id"]: _name(m) for m in overview["meps"]},
+    )
+    return {
+        "note": "Pět nejnovějších závěrečných hlasování (bez výběru) a čísla pro úvodní stránku. Generuje scripts/build_home.py.",
+        "votes": out_votes,
+        "facts": facts,
+        "agenda": agenda,
+    }
 
 
 def main(argv=None) -> int:

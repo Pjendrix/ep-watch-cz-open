@@ -92,8 +92,7 @@ def link(proposals: list[dict], documents: dict, votes: list[dict]) -> dict[int,
                 best = (*st, meta.get("label"))
         return best
 
-    process_types = {i["procedure"]: i.get("process_type") for i in proposals
-                     if i["kind"] == "procedure" and i.get("procedure")}
+    process_types = {i["procedure"]: i.get("process_type") for i in proposals if i["kind"] == "procedure" and i.get("procedure")}
 
     def ptype(procedure: str | None) -> dict:
         t = process_types.get(procedure) if procedure else None
@@ -115,8 +114,7 @@ def link(proposals: list[dict], documents: dict, votes: list[dict]) -> dict[int,
     # z dat ale nejde poznat, jestli jde o různé výbory, takže se počítá jednou.
     seen_roles: set[tuple] = set()
     for item in proposals:
-        base = {"id": item["id"], "label": item.get("label"), "date": item.get("date"), "title": item.get("title"),
-                "url": item.get("url")}
+        base = {"id": item["id"], "label": item.get("label"), "date": item.get("date"), "title": item.get("title"), "url": item.get("url")}
         kind = item["kind"]
         if kind in ("report", "motion", "joint_motion"):
             status, vote_id, vote_date = vote_status(htv_reference(item["id"], item.get("label")), by_ref)
@@ -127,10 +125,21 @@ def link(proposals: list[dict], documents: dict, votes: list[dict]) -> dict[int,
                 if rc_status != "no_vote":
                     status, extra = "superseded", {"joint_motion": rc, "joint_result": rc_status, "joint_vote_id": rc_vote}
             for p in item["participants"]:
-                add(p["mep_id"], {**base, "type": kind, "role": p["role"], "status": status, "vote_id": vote_id,
-                                  "vote_date": vote_date, "signatories_total": item.get("signatories_total"),
-                                  **(ptype(item.get("procedure")) if kind == "report" else {}),
-                                  **note(vote_id), **extra})
+                add(
+                    p["mep_id"],
+                    {
+                        **base,
+                        "type": kind,
+                        "role": p["role"],
+                        "status": status,
+                        "vote_id": vote_id,
+                        "vote_date": vote_date,
+                        "signatories_total": item.get("signatories_total"),
+                        **(ptype(item.get("procedure")) if kind == "report" else {}),
+                        **note(vote_id),
+                        **extra,
+                    },
+                )
         elif kind == "procedure":
             for p in item["participants"]:
                 role = p["role"]
@@ -153,15 +162,37 @@ def link(proposals: list[dict], documents: dict, votes: list[dict]) -> dict[int,
                     status, vote_id, vote_date, report_label = report_status(item["procedure"])
                 else:
                     status, vote_id, vote_date, report_label = None, None, None, None
-                add(p["mep_id"], {**base, "date": p.get("date") or item.get("date"), "type": typ, "role": role,
-                                  "group": p.get("group"), "committee": p.get("in_name_of"), "status": status,
-                                  "vote_id": vote_id, "vote_date": vote_date, "report": report_label,
-                                  **ptype(item.get("procedure")), **note(vote_id)})
+                add(
+                    p["mep_id"],
+                    {
+                        **base,
+                        "date": p.get("date") or item.get("date"),
+                        "type": typ,
+                        "role": role,
+                        "group": p.get("group"),
+                        "committee": p.get("in_name_of"),
+                        "status": status,
+                        "vote_id": vote_id,
+                        "vote_date": vote_date,
+                        "report": report_label,
+                        **ptype(item.get("procedure")),
+                        **note(vote_id),
+                    },
+                )
         elif kind.startswith("question"):
             for p in item["participants"]:
-                add(p["mep_id"], {**base, "type": "question", "subtype": kind, "role": p["role"],
-                                  "status": "answered" if item.get("answer_date") else "unanswered",
-                                  "answer_date": item.get("answer_date"), "authors_total": item.get("authors_total")})
+                add(
+                    p["mep_id"],
+                    {
+                        **base,
+                        "type": "question",
+                        "subtype": kind,
+                        "role": p["role"],
+                        "status": "answered" if item.get("answer_date") else "unanswered",
+                        "answer_date": item.get("answer_date"),
+                        "authors_total": item.get("authors_total"),
+                    },
+                )
     for lst in out.values():
         lst.sort(key=lambda e: (e.get("date") or "", e["id"]), reverse=True)
     return out
@@ -190,8 +221,10 @@ def passed(entries: list[dict]) -> dict:
     """Co z práce poslance prošlo: přijaté zprávy, kde byl zpravodaj (vedl text), a kde byl stínový zpravodaj
     (vyjednával za svou frakci), zvlášť legislativní; přijatá usnesení, která podepsal; zprávy zatím bez
     jmenovitého hlasování. Jen počty z dat, žádné váhy ani body."""
+
     def count(pred):
         return sum(1 for e in entries if pred(e))
+
     lead = lambda e: e["type"] == "report"
     shadow = lambda e: e["type"] == "shadow_report"
     adopted = lambda e: e.get("status") == "ADOPTED"
@@ -243,13 +276,15 @@ def coverage(start: str | None, first_start: str | None, until: str | None) -> f
     if not (start and first_start and until):
         return None
     from datetime import date
+
     d = lambda s: date.fromisoformat(s)
     total = (d(until) - d(first_start)).days
     return min(1.0, (d(until) - d(max(start, first_start))).days / total) if total > 0 else None
 
 
-def delegation_profile(roles_by_mep: dict[str, dict], members: dict[str, str] | None = None,
-                       until: str | None = None) -> dict[str, dict | None]:
+def delegation_profile(
+    roles_by_mep: dict[str, dict], members: dict[str, str] | None = None, until: str | None = None
+) -> dict[str, dict | None]:
     """Profil v české delegaci: u každé kategorie z TIER_KEYS třetina mezi současnými poslanci. Žádné celkové pořadí.
 
     members = {ID: začátek mandátu} poslanců v mandátu (současná delegace); jen mezi nimi se srovnává.
@@ -266,7 +301,10 @@ def delegation_profile(roles_by_mep: dict[str, dict], members: dict[str, str] | 
     for k, start in members.items():
         cov = coverage(start, first_start, until)
         skipped = cov is not None and cov < MIN_COVERAGE
-        out[k] = {"tiers": {key: None if skipped else tier(value(k, key), columns[key]) for key in TIER_KEYS},
-                  "of": len(members), "tiers_skipped": skipped,
-                  "mandate_from": start if start and first_start and start > first_start else None}
+        out[k] = {
+            "tiers": {key: None if skipped else tier(value(k, key), columns[key]) for key in TIER_KEYS},
+            "of": len(members),
+            "tiers_skipped": skipped,
+            "mandate_from": start if start and first_start and start > first_start else None,
+        }
     return out

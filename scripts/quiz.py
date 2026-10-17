@@ -16,6 +16,7 @@ Hlasy jsou jen poslanců v mandátu k datu hlasování (F pro, A proti, B zdrže
 
 Výstup: data/quiz.json (build_web.py). Srozumitelné shrnutí otázek doplňuje zvlášť quiz_summaries.py (Claude Haiku).
 """
+
 from __future__ import annotations
 
 from collections import Counter
@@ -30,9 +31,11 @@ MAX_PER_TOPIC = 3
 LOPSIDED = 2  # menšina Čechů (pro vs. proti) nejvýš tolik hlasů = skoro jednomyslné
 LEGISLATIVE = {"COD", "CNS", "APP"}
 LETTER = {"FOR": "F", "AGAINST": "A", "ABSTENTION": "B", "DID_NOT_VOTE": "N"}
-QUIZ_RULE = ("Závěrečná hlasování o zákonech za celé volební období, ve kterých čeští poslanci nehlasovali jednotně, "
-             "seřazená podle toho, kolikrát se o zákonu v plénu jmenovitě hlasovalo (víc hlasování znamená víc sporů o text). "
-             f"Z jednoho tématu nejvýš {MAX_PER_TOPIC} zákony a nejvýš polovina otázek s menšinou Čechů do {LOPSIDED} hlasů.")
+QUIZ_RULE = (
+    "Závěrečná hlasování o zákonech za celé volební období, ve kterých čeští poslanci nehlasovali jednotně, "
+    "seřazená podle toho, kolikrát se o zákonu v plénu jmenovitě hlasovalo (víc hlasování znamená víc sporů o text). "
+    f"Z jednoho tématu nejvýš {MAX_PER_TOPIC} zákony a nejvýš polovina otázek s menšinou Čechů do {LOPSIDED} hlasů."
+)
 
 
 def pick(candidates: list[dict], size: int) -> list[dict]:
@@ -54,8 +57,12 @@ def build_quiz(votes: list[dict], meps_by_id: dict) -> dict:
     newest: dict[str, dict] = {}
     for v in votes:
         proc = v.get("procedure") or {}
-        if (not is_final(v) or proc.get("type") not in LEGISLATIVE or not proc.get("reference")
-                or v.get("result") not in ("ADOPTED", "REJECTED")):
+        if (
+            not is_final(v)
+            or proc.get("type") not in LEGISLATIVE
+            or not proc.get("reference")
+            or v.get("result") not in ("ADOPTED", "REJECTED")
+        ):
             continue
         cz = active_positions(v, meps_by_id)
         split = cz_split(cz)
@@ -63,8 +70,14 @@ def build_quiz(votes: list[dict], meps_by_id: dict) -> dict:
             continue
         ref = proc["reference"]
         if ref not in newest or (v["date"], v["id"]) > (newest[ref]["vote"]["date"], newest[ref]["vote"]["id"]):
-            newest[ref] = {"vote": v, "cz": cz, "ref": ref, "roll_calls": roll_calls[ref],
-                           "topic": (categories_for(v) or [""])[0], "lopsided": min(split[1], split[2]) <= LOPSIDED}
+            newest[ref] = {
+                "vote": v,
+                "cz": cz,
+                "ref": ref,
+                "roll_calls": roll_calls[ref],
+                "topic": (categories_for(v) or [""])[0],
+                "lopsided": min(split[1], split[2]) <= LOPSIDED,
+            }
     candidates = list(newest.values())
     candidates.sort(key=lambda c: (-c["roll_calls"], -int(c["vote"]["date"].replace("-", "")), c["vote"]["id"]))
     long_ = pick(candidates, QUIZ_LONG)
@@ -74,14 +87,27 @@ def build_quiz(votes: list[dict], meps_by_id: dict) -> dict:
         v = c["vote"]
         kind = v.get("vote_kind") or classify(v)[0]
         cnt = v["counts"]
-        questions.append({
-            "id": v["id"], "date": v["date"], "month": v["date"][:7],
-            "title": v.get("title_cs") or v.get("title") or v["procedure"].get("title"),
-            "title_en": v["procedure"].get("title"),
-            "description": v.get("description_cs") or v.get("description"),
-            "procedure": c["ref"], "vote_kind": kind, "result": v["result"], "topic": c["topic"] or None,
-            "roll_calls": c["roll_calls"], "counts": [cnt["for"], cnt["against"], cnt["abstention"]],
-            "positions": {str(p["member_id"]): LETTER[p["position"]] for p in sorted(c["cz"], key=lambda p: p["member_id"])},
-        })
-    return {"rule": QUIZ_RULE, "sizes": {"short": QUIZ_SHORT, "long": QUIZ_LONG},
-            "short": [c["vote"]["id"] for c in short], "long": [c["vote"]["id"] for c in long_], "questions": questions}
+        questions.append(
+            {
+                "id": v["id"],
+                "date": v["date"],
+                "month": v["date"][:7],
+                "title": v.get("title_cs") or v.get("title") or v["procedure"].get("title"),
+                "title_en": v["procedure"].get("title"),
+                "description": v.get("description_cs") or v.get("description"),
+                "procedure": c["ref"],
+                "vote_kind": kind,
+                "result": v["result"],
+                "topic": c["topic"] or None,
+                "roll_calls": c["roll_calls"],
+                "counts": [cnt["for"], cnt["against"], cnt["abstention"]],
+                "positions": {str(p["member_id"]): LETTER[p["position"]] for p in sorted(c["cz"], key=lambda p: p["member_id"])},
+            }
+        )
+    return {
+        "rule": QUIZ_RULE,
+        "sizes": {"short": QUIZ_SHORT, "long": QUIZ_LONG},
+        "short": [c["vote"]["id"] for c in short],
+        "long": [c["vote"]["id"] for c in long_],
+        "questions": questions,
+    }

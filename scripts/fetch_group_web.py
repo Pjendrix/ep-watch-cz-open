@@ -55,8 +55,9 @@ def parse_websites(payload: dict, titles: dict[str, str]) -> dict[str, dict]:
 
 
 def fetch(titles: dict[str, str], retries: int = 4) -> dict:
-    query = urllib.parse.urlencode({"action": "wbgetentities", "sites": "cswiki", "titles": "|".join(titles.values()),
-                                    "props": "claims|sitelinks", "format": "json"})
+    query = urllib.parse.urlencode(
+        {"action": "wbgetentities", "sites": "cswiki", "titles": "|".join(titles.values()), "props": "claims|sitelinks", "format": "json"}
+    )
     for attempt in range(retries + 1):
         try:
             with urllib.request.urlopen(urllib.request.Request(f"{API}?{query}", headers={"User-Agent": UA}), timeout=60) as r:
@@ -80,9 +81,11 @@ def main(argv=None) -> int:
     except (FormatError, KeyError, OSError) as e:
         print(f"CHYBA: {e}; data/group_web.json zůstává beze změny", file=sys.stderr)
         return 2
-    doc = {"updated": dt.datetime.now(dt.timezone.utc).date().isoformat(),
-           "source": {"name": "Wikidata (vlastnost P856, oficiální web)", "url": "https://www.wikidata.org", "license": "CC0 1.0"},
-           "groups": groups}
+    doc = {
+        "updated": dt.datetime.now(dt.timezone.utc).date().isoformat(),
+        "source": {"name": "Wikidata (vlastnost P856, oficiální web)", "url": "https://www.wikidata.org", "license": "CC0 1.0"},
+        "groups": groups,
+    }
     (args.data_dir / "group_web.json").write_text(json.dumps(doc, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     print(f"weby skupin: {len(groups)}", file=sys.stderr)
     return 0

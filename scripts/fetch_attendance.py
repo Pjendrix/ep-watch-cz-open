@@ -37,8 +37,12 @@ def parse_day(item: dict, cz_ids: set[int], term_start: str = TERM_START, today:
     attendees = person_ids(item.get("had_participant_person"))
     if not attendees:
         return None  # listina ještě není (nebo den bez jednání): nepočítat jako neúčast
-    return {"date": item["activity_date"][:10], "attendees": len(set(attendees)),
-            "present": sorted(set(attendees) & cz_ids), "excused": sorted(set(person_ids(item.get("had_excused_person"))) & cz_ids)}
+    return {
+        "date": item["activity_date"][:10],
+        "attendees": len(set(attendees)),
+        "present": sorted(set(attendees) & cz_ids),
+        "excused": sorted(set(person_ids(item.get("had_excused_person"))) & cz_ids),
+    }
 
 
 def main(argv=None) -> int:
@@ -61,9 +65,16 @@ def main(argv=None) -> int:
     except FormatError as e:
         print(f"CHYBA FORMÁTU: {e}", file=sys.stderr)
         return 2
-    doc = {"source": {"name": "EP Open Data API v2, /meetings (prezenční listiny)", "url": "https://data.europarl.europa.eu/api/v2/meetings",
-                      "license": "CC BY 4.0"},
-           "term_start": TERM_START, "updated": today.isoformat(), "days": [days[k] for k in sorted(days)]}
+    doc = {
+        "source": {
+            "name": "EP Open Data API v2, /meetings (prezenční listiny)",
+            "url": "https://data.europarl.europa.eu/api/v2/meetings",
+            "license": "CC BY 4.0",
+        },
+        "term_start": TERM_START,
+        "updated": today.isoformat(),
+        "days": [days[k] for k in sorted(days)],
+    }
     (args.data_dir / "attendance.json").write_text(json.dumps(doc, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
     print(f"prezenční listiny: {len(days)} plenárních dnů", file=sys.stderr)
     return 0

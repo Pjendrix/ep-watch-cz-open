@@ -50,8 +50,7 @@ QUESTION_KINDS = {
     "def/ep-document-types/QUESTION_WRITTEN_PRIORITY": "question_priority",
     "def/ep-document-types/QUESTION_ORAL": "question_oral",
 }
-PROCEDURE_ROLES = {"RAPPORTEUR", "RAPPORTEUR_SHADOW", "RAPPORTEUR_OPINION", "RAPPORTEUR_SHADOW_OPINION",
-                   "RAPPORTEUR_CO"}
+PROCEDURE_ROLES = {"RAPPORTEUR", "RAPPORTEUR_SHADOW", "RAPPORTEUR_OPINION", "RAPPORTEUR_SHADOW_OPINION", "RAPPORTEUR_CO"}
 
 
 class Budget(Exception):
@@ -92,15 +91,20 @@ def cz_participants(work: dict, cz_ids: set[int], roles: set[str] | None = None)
             continue
         for pid in person_ids(p):
             if pid in cz_ids:
-                out.append({"mep_id": pid, "role": role, "group": short(p.get("politicalGroup")),
-                            "in_name_of": short(p.get("participation_in_name_of")),
-                            "date": (p.get("activity_date") or None)})
+                out.append(
+                    {
+                        "mep_id": pid,
+                        "role": role,
+                        "group": short(p.get("politicalGroup")),
+                        "in_name_of": short(p.get("participation_in_name_of")),
+                        "date": (p.get("activity_date") or None),
+                    }
+                )
     return sorted(out, key=lambda x: (x["mep_id"], x["role"] or ""))
 
 
 def count_persons(work: dict, role: str = "AUTHOR") -> int:
-    return sum(len(person_ids(p)) for p in as_list(work.get("workHadParticipation"))
-               if short(p.get("participation_role")) == role)
+    return sum(len(person_ids(p)) for p in as_list(work.get("workHadParticipation")) if short(p.get("participation_role")) == role)
 
 
 def parse_document(doc: dict, cz_ids: set[int]) -> tuple[dict, dict | None]:
@@ -122,9 +126,15 @@ def parse_document(doc: dict, cz_ids: set[int]) -> tuple[dict, dict | None]:
     if not parts:
         return meta, None
     item = {
-        "id": doc["identifier"], "kind": kind, "label": doc.get("label"), "date": doc.get("document_date"),
-        "title": title_of(doc), "procedure": meta["procedure"], "derived_from": meta["derived_from"],
-        "participants": parts, "signatories_total": count_persons(doc) if kind != "report" else None,
+        "id": doc["identifier"],
+        "kind": kind,
+        "label": doc.get("label"),
+        "date": doc.get("document_date"),
+        "title": title_of(doc),
+        "procedure": meta["procedure"],
+        "derived_from": meta["derived_from"],
+        "participants": parts,
+        "signatories_total": count_persons(doc) if kind != "report" else None,
         "url": DOC_URL.format(id=doc["identifier"]),
     }
     return meta, item
@@ -137,9 +147,13 @@ def parse_procedure(proc: dict, cz_ids: set[int]) -> dict | None:
         return None
     label = proc.get("label")
     return {
-        "id": f"proc-{proc['process_id']}", "kind": "procedure", "label": label,
-        "procedure": proc["process_id"], "process_type": short(proc.get("process_type")),
-        "title": title_of(proc, "process_title"), "participants": parts,
+        "id": f"proc-{proc['process_id']}",
+        "kind": "procedure",
+        "label": label,
+        "procedure": proc["process_id"],
+        "process_type": short(proc.get("process_type")),
+        "title": title_of(proc, "process_title"),
+        "participants": parts,
         "date": min((p["date"] for p in parts if p["date"]), default=None),
         "url": OEIL_URL.format(label=label) if label else None,
         # pro radar „Co se chystá“: odpovědný výbor a události procedury (typ a datum, jak je vrací API)
@@ -195,20 +209,40 @@ def parse_question(q: dict, cz_ids: set[int]) -> dict | None:
     if kind is None or not parts:
         return None
     answers = [a for a in as_list(q.get("inverse_answers_to")) if isinstance(a, dict)]
-    addressees = [short(o) for p in as_list(q.get("workHadParticipation"))
-                  if short(p.get("participation_role")) == "ADDRESSEE" for o in as_list(p.get("had_participant_organization"))]
+    addressees = [
+        short(o)
+        for p in as_list(q.get("workHadParticipation"))
+        if short(p.get("participation_role")) == "ADDRESSEE"
+        for o in as_list(p.get("had_participant_organization"))
+    ]
     return {
-        "id": q["identifier"], "kind": kind, "label": q.get("label") or question_label(q["identifier"]),
-        "date": q.get("document_date"), "title": title_of(q), "participants": parts,
-        "authors_total": count_persons(q), "addressee": addressees,
+        "id": q["identifier"],
+        "kind": kind,
+        "label": q.get("label") or question_label(q["identifier"]),
+        "date": q.get("document_date"),
+        "title": title_of(q),
+        "participants": parts,
+        "authors_total": count_persons(q),
+        "addressee": addressees,
         "answer_date": min((a.get("document_date") for a in answers if a.get("document_date")), default=None),
         "url": DOC_URL.format(id=q["identifier"]),
     }
 
 
 class Fetcher:
-    def __init__(self, client: EPClient, cz_ids: set[int], state: dict, items: dict, max_requests: int, today: str,
-                 save=None, deadline: float | None = None, log=None, voted: set[str] | None = None):
+    def __init__(
+        self,
+        client: EPClient,
+        cz_ids: set[int],
+        state: dict,
+        items: dict,
+        max_requests: int,
+        today: str,
+        save=None,
+        deadline: float | None = None,
+        log=None,
+        voted: set[str] | None = None,
+    ):
         self.client, self.cz_ids, self.state, self.items = client, cz_ids, state, items
         self.voted = voted or set()  # procedury (2023-0436), o kterých se hlasovalo podle HowTheyVote
         self.left, self.today, self.save = max_requests, today, save or (lambda: None)
@@ -288,12 +322,27 @@ class Fetcher:
         ids |= no_title | no_events
         # Nejdřív nestažené, pak rozpracované české bez událostí, pak hlasované bez českého názvu, pak rozpracované
         # české a nakonec nejdéle nestahované (stínoví zpravodajové přibývají v průběhu procedury).
-        order = sorted(ids, key=lambda i: (i in seen, not (i in active and "events" not in self.items.get(f"proc-{i}", {})),
-                                           i not in no_title, i not in no_events, i not in active, seen.get(i, {}).get("fetched", ""), i))
+        order = sorted(
+            ids,
+            key=lambda i: (
+                i in seen,
+                not (i in active and "events" not in self.items.get(f"proc-{i}", {})),
+                i not in no_title,
+                i not in no_events,
+                i not in active,
+                seen.get(i, {}).get("fetched", ""),
+                i,
+            ),
+        )
         for proc_id in order:
             limit = stale_active if proc_id in active else stale
-            if (proc_id in seen and seen[proc_id]["fetched"] > limit and proc_id not in no_title and proc_id not in no_events
-                    and "events" in self.items.get(f"proc-{proc_id}", {"events": 1})):
+            if (
+                proc_id in seen
+                and seen[proc_id]["fetched"] > limit
+                and proc_id not in no_title
+                and proc_id not in no_events
+                and "events" in self.items.get(f"proc-{proc_id}", {"events": 1})
+            ):
                 continue
             proc = self.detail("procedures", proc_id)
             item = parse_procedure(proc, self.cz_ids)
@@ -303,8 +352,7 @@ class Fetcher:
                 self.items[key] = item
             else:
                 self.items.pop(key, None)
-            seen[proc_id] = {"fetched": self.today, "label": proc.get("label"),
-                             "title_cs": title_of(proc, "process_title").get("cs")}
+            seen[proc_id] = {"fetched": self.today, "label": proc.get("label"), "title_cs": title_of(proc, "process_title").get("cs")}
             if proc_id in self.voted:
                 seen[proc_id].update(events=procedure_events(proc), committee=lead_committee(proc))
             self.checkpoint()
@@ -361,8 +409,7 @@ def main(argv=None) -> int:
     p.add_argument("--years", type=int, nargs="+", default=list(range(2024, today.year + 1)))
     p.add_argument("--max-requests", type=int, default=100_000)
     p.add_argument("--max-minutes", type=float, default=None, help="po této době stav uložit a skončit")
-    p.add_argument("--only", choices=["documents", "procedures", "questions"], nargs="+",
-                   default=["documents", "procedures", "questions"])
+    p.add_argument("--only", choices=["documents", "procedures", "questions"], nargs="+", default=["documents", "procedures", "questions"])
     args = p.parse_args(argv)
 
     meps = json.loads((args.data_dir / "meps.json").read_text(encoding="utf-8"))["meps"]
@@ -378,17 +425,30 @@ def main(argv=None) -> int:
     def save():
         state["updated"] = today.isoformat()
         write(state_path, state)
-        write(items_path, {
-            "source": {"name": "EP Open Data API v2", "url": "https://data.europarl.europa.eu/api/v2",
-                       "license": "CC BY 4.0"},
-            "term": TERM, "term_start": TERM_START,
-            "items": sorted(items.values(), key=lambda i: (i.get("date") or "", i["id"])),
-        })
+        write(
+            items_path,
+            {
+                "source": {"name": "EP Open Data API v2", "url": "https://data.europarl.europa.eu/api/v2", "license": "CC BY 4.0"},
+                "term": TERM,
+                "term_start": TERM_START,
+                "items": sorted(items.values(), key=lambda i: (i.get("date") or "", i["id"])),
+            },
+        )
 
     client = EPClient(cache_dir=root / ".cache" / "ep" / "corporate-bodies", min_interval=0.8)
     deadline = time.monotonic() + args.max_minutes * 60 if args.max_minutes else None
-    fetcher = Fetcher(client, cz_ids, state, items, args.max_requests, today.isoformat(), save, deadline,
-                      log=lambda msg: print(msg, file=sys.stderr, flush=True), voted=voted_procedures(args.data_dir / "votes"))
+    fetcher = Fetcher(
+        client,
+        cz_ids,
+        state,
+        items,
+        args.max_requests,
+        today.isoformat(),
+        save,
+        deadline,
+        log=lambda msg: print(msg, file=sys.stderr, flush=True),
+        voted=voted_procedures(args.data_dir / "votes"),
+    )
     complete = True
     try:
         for part in args.only:
@@ -405,8 +465,11 @@ def main(argv=None) -> int:
     kinds = {}
     for i in items.values():
         kinds[i["kind"]] = kinds.get(i["kind"], 0) + 1
-    print(f"položky s českými poslanci: {kinds}; staženo dokumentů {len(state['documents'])}, "
-          f"procedur {len(state['procedures'])}, otázek {len(state['questions'])}", file=sys.stderr)
+    print(
+        f"položky s českými poslanci: {kinds}; staženo dokumentů {len(state['documents'])}, "
+        f"procedur {len(state['procedures'])}, otázek {len(state['questions'])}",
+        file=sys.stderr,
+    )
     return 0
 
 

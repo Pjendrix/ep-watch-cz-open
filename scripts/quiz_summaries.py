@@ -15,6 +15,7 @@ Použití:
     python scripts/quiz_summaries.py                       # lokálně přes Claude Code (předplatné, bez API klíče)
     ANTHROPIC_API_KEY=... python scripts/quiz_summaries.py # přes Claude API (např. GitHub Actions)
 """
+
 from __future__ import annotations
 
 import argparse
@@ -82,22 +83,21 @@ def has_foreign_numbers(output: str, source: str) -> bool:
 
 def valid(summary: dict, source: str) -> bool:
     nazev, shrnuti = summary.get("nazev", "").strip(), summary.get("shrnuti", "").strip()
-    return (0 < len(nazev) <= 100 and 0 < len(shrnuti) <= 220
-            and not has_foreign_numbers(f"{nazev} {shrnuti}", source))
+    return 0 < len(nazev) <= 100 and 0 < len(shrnuti) <= 220 and not has_foreign_numbers(f"{nazev} {shrnuti}", source)
 
 
 class ApiBackend:
     """Claude API (ANTHROPIC_API_KEY), např. v GitHub Actions."""
 
-    def __init__(self, client):
-        self.client = client
+    def __init__(self, client, prompt: str = PROMPT, schema: dict = SCHEMA):
+        self.client, self.prompt, self.schema = client, prompt, schema
 
     def ask(self, text: str) -> dict | None:
         response = self.client.messages.create(
             model=MODEL,
             max_tokens=2048,
-            system=PROMPT,
-            output_config={"effort": "low", "format": {"type": "json_schema", "schema": SCHEMA}},
+            system=self.prompt,
+            output_config={"effort": "low", "format": {"type": "json_schema", "schema": self.schema}},
             messages=[{"role": "user", "content": text}],
         )
         if response.stop_reason != "end_turn":
@@ -114,15 +114,31 @@ class CliBackend:
     Stejný model, zadání (nahrazuje výchozí systémový prompt Claude Code) a schéma výstupu; bez nástrojů a mimo repo,
     aby model neviděl nic kromě zadání."""
 
-    def __init__(self, cmd: str = "claude", timeout: int = 180):
-        self.cmd, self.timeout = cmd, timeout
+    def __init__(self, cmd: str = "claude", timeout: int = 180, prompt: str = PROMPT, schema: dict = SCHEMA):
+        self.cmd, self.timeout, self.prompt, self.schema = cmd, timeout, prompt, schema
 
     def ask(self, text: str) -> dict | None:
         with tempfile.TemporaryDirectory() as tmp:
             res = subprocess.run(
-                [self.cmd, "-p", "--model", MODEL, "--output-format", "json", "--tools=", "--system-prompt", PROMPT,
-                 "--json-schema", json.dumps(SCHEMA)],
-                input=text, capture_output=True, text=True, timeout=self.timeout, cwd=tmp)
+                [
+                    self.cmd,
+                    "-p",
+                    "--model",
+                    MODEL,
+                    "--output-format",
+                    "json",
+                    "--tools=",
+                    "--system-prompt",
+                    self.prompt,
+                    "--json-schema",
+                    json.dumps(self.schema),
+                ],
+                input=text,
+                capture_output=True,
+                text=True,
+                timeout=self.timeout,
+                cwd=tmp,
+            )
         if res.returncode != 0:
             return None
         try:
@@ -161,15 +177,19 @@ def run(quiz: dict, cache: dict, client, today: str, log=print) -> dict:
             log(f"{q['procedure']}: shrnutí zamítnuto (odmítnutí, neplatný výstup nebo číslo mimo zadání), web ukáže úřední název")
             continue
         items[q["procedure"]] = {**summary, "fingerprint": fp, "generated": today}
-    return {"note": "Shrnutí otázek kvízu Moje shoda od Claude Haiku (scripts/quiz_summaries.py). Čísla ani výsledky hlasování neobsahují.",
-            "model": MODEL, "prompt_version": PROMPT_VERSION, "prompt": PROMPT, "items": items}
+    return {
+        "note": "Shrnutí otázek kvízu Moje shoda od Claude Haiku (scripts/quiz_summaries.py). Čísla ani výsledky hlasování neobsahují.",
+        "model": MODEL,
+        "prompt_version": PROMPT_VERSION,
+        "prompt": PROMPT,
+        "items": items,
+    }
 
 
 def missing(quiz: dict, cache: dict) -> list[dict]:
     """Otázky kvízu bez platného shrnutí (nové, změněné nebo po změně zadání)."""
     items = cache.get("items", {})
-    return [q for q in quiz.get("questions", [])
-            if items.get(q["procedure"], {}).get("fingerprint") != fingerprint(question_input(q))]
+    return [q for q in quiz.get("questions", []) if items.get(q["procedure"], {}).get("fingerprint") != fingerprint(question_input(q))]
 
 
 def check_output(quiz: dict, cache: dict) -> str:
@@ -183,8 +203,12 @@ def main(argv=None) -> int:
     root = Path(__file__).resolve().parent.parent
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--data-dir", type=Path, default=root / "data")
-    p.add_argument("--backend", choices=["auto", "api", "claude-cli"], default="auto",
-                   help="api = ANTHROPIC_API_KEY; claude-cli = lokální Claude Code bez API klíče; auto = api, když je klíč, jinak claude-cli")
+    p.add_argument(
+        "--backend",
+        choices=["auto", "api", "claude-cli"],
+        default="auto",
+        help="api = ANTHROPIC_API_KEY; claude-cli = lokální Claude Code bez API klíče; auto = api, když je klíč, jinak claude-cli",
+    )
     p.add_argument("--check", action="store_true", help="nic negeneruje, jen vypíše počet otázek bez shrnutí (GITHUB_OUTPUT)")
     args = p.parse_args(argv)
     quiz_path, out_path = args.data_dir / "quiz.json", args.data_dir / "quiz_summaries.json"
@@ -199,6 +223,7 @@ def main(argv=None) -> int:
     use_api = args.backend == "api" or (args.backend == "auto" and os.environ.get("ANTHROPIC_API_KEY"))
     if use_api and os.environ.get("ANTHROPIC_API_KEY"):
         import anthropic  # jen když se opravdu volá API
+
         client = ApiBackend(anthropic.Anthropic())
     elif not use_api and shutil.which("claude"):
         client = CliBackend()
@@ -207,14 +232,21 @@ def main(argv=None) -> int:
         print("chybí ANTHROPIC_API_KEY i Claude Code: nová shrnutí se nevytvoří, zůstanou jen uložená", file=sys.stderr)
     cache = json.loads(out_path.read_text(encoding="utf-8")) if out_path.exists() else {}
     try:
-        out = run(json.loads(quiz_path.read_text(encoding="utf-8")), cache, client, dt.date.today().isoformat(),
-                  log=lambda m: print(m, file=sys.stderr))
+        out = run(
+            json.loads(quiz_path.read_text(encoding="utf-8")),
+            cache,
+            client,
+            dt.date.today().isoformat(),
+            log=lambda m: print(m, file=sys.stderr),
+        )
     except FormatError as e:
         print(f"CHYBA FORMÁTU: {e}", file=sys.stderr)
         return 2
     out_path.write_text(json.dumps(out, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-    print(f"shrnutí kvízu: {len(out['items'])} z {len(json.loads(quiz_path.read_text(encoding='utf-8'))['questions'])} otázek",
-          file=sys.stderr)
+    print(
+        f"shrnutí kvízu: {len(out['items'])} z {len(json.loads(quiz_path.read_text(encoding='utf-8'))['questions'])} otázek",
+        file=sys.stderr,
+    )
     return 0
 
 

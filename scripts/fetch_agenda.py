@@ -78,13 +78,18 @@ def vote_items(payload: dict, day: str) -> list[dict]:
             if hit and hit[1] not in docs:
                 docs.append(hit[1])
         order = a.get("activity_order")
-        items.append({
-            "id": a["activity_id"], "date": str(a["activity_date"])[:10],
-            "order": float(order) if isinstance(order, (int, float, str)) and str(order).replace(".", "", 1).isdigit() else None,
-            "title_cs": label.get("cs"), "title_en": label.get("en"),
-            "docs": docs, "legislative": any(d.startswith("C-") for d in docs),
-            "stage": _short(a.get("occured_at_stage")),
-        })
+        items.append(
+            {
+                "id": a["activity_id"],
+                "date": str(a["activity_date"])[:10],
+                "order": float(order) if isinstance(order, (int, float, str)) and str(order).replace(".", "", 1).isdigit() else None,
+                "title_cs": label.get("cs"),
+                "title_en": label.get("en"),
+                "docs": docs,
+                "legislative": any(d.startswith("C-") for d in docs),
+                "stage": _short(a.get("occured_at_stage")),
+            }
+        )
     items.sort(key=lambda x: (x["date"], x["order"] if x["order"] is not None else 1e9, x["id"]))
     return items
 
@@ -159,13 +164,19 @@ def main(argv=None) -> int:
     nxt = doc["next"]
     if nxt and not nxt["items"] and prev.get("from") == nxt["from"] and prev.get("items"):
         # EP API občas vrátí program bez hlasovacích bodů; dřívější úplný program stejného zasedání se nepřepíše
-        print(f"CHYBA: API vrátilo program zasedání {nxt['from']} bez hlasování, předchozí stažení mělo "
-              f"{len(prev['items'])} bodů; soubor se nemění", file=sys.stderr)
+        print(
+            f"CHYBA: API vrátilo program zasedání {nxt['from']} bez hlasování, předchozí stažení mělo "
+            f"{len(prev['items'])} bodů; soubor se nemění",
+            file=sys.stderr,
+        )
         return 3
     changed = write_if_changed(args.out, doc, args.today)
     nxt = doc["next"]
-    print(f"program: {'beze změny' if not changed else 'uloženo'}; příští zasedání "
-          f"{(nxt['from'] + ' – ' + nxt['to'] + ', ' + str(len(nxt['items'])) + ' hlasovacích bodů') if nxt else 'neznámé'}", file=sys.stderr)
+    print(
+        f"program: {'beze změny' if not changed else 'uloženo'}; příští zasedání "
+        f"{(nxt['from'] + ' – ' + nxt['to'] + ', ' + str(len(nxt['items'])) + ' hlasovacích bodů') if nxt else 'neznámé'}",
+        file=sys.stderr,
+    )
     return 0
 
 

@@ -8,8 +8,13 @@ from test_build_web import mep, vote  # noqa: E402
 
 def law(vid, date, ref, positions, ptype="COD", kind="final", result="ADOPTED", topic="3.70.03"):
     v = vote(vid, date, positions)
-    v.update(vote_kind=kind, result=result, title_cs=f"MOCK {ref}", procedure={"reference": ref, "type": ptype, "title": "MOCK"},
-             topics={"oeil": [{"code": topic}]})
+    v.update(
+        vote_kind=kind,
+        result=result,
+        title_cs=f"MOCK {ref}",
+        procedure={"reference": ref, "type": ptype, "title": "MOCK"},
+        topics={"oeil": [{"code": topic}]},
+    )
     return v
 
 
@@ -25,10 +30,11 @@ SPLIT = [(1, "FOR"), (2, "FOR"), (3, "FOR"), (4, "AGAINST"), (5, "AGAINST"), (6,
 def test_rule_filters_and_orders_by_roll_calls():
     votes = [
         law(1, "2025-03-01", "2025/0001(COD)", SPLIT),
-        law(2, "2025-04-01", "2025/0002(COD)", SPLIT), *amendments("2025/0002(COD)", 5),
-        law(3, "2025-04-02", "2025/0003(COD)", [(1, "FOR"), (2, "FOR")]),           # Češi jednotní
-        law(4, "2025-04-03", "2025/0004(INI)", SPLIT, ptype="INI"),                 # není zákon
-        law(5, "2024-09-01", "2024/0005(COD)", SPLIT),                             # celé období: počítá se
+        law(2, "2025-04-01", "2025/0002(COD)", SPLIT),
+        *amendments("2025/0002(COD)", 5),
+        law(3, "2025-04-02", "2025/0003(COD)", [(1, "FOR"), (2, "FOR")]),  # Češi jednotní
+        law(4, "2025-04-03", "2025/0004(INI)", SPLIT, ptype="INI"),  # není zákon
+        law(5, "2024-09-01", "2024/0005(COD)", SPLIT),  # celé období: počítá se
     ]
     q = quiz.build_quiz(votes, MEPS)
     assert q["long"] == [2, 1, 5]  # nejvíc hlasování, pak novější

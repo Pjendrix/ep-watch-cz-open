@@ -25,7 +25,7 @@ def test_parse_types_minutes_and_item():
 
 def test_other_person_or_role_is_skipped():
     item = {**FIXTURE["data"][0]}
-    assert fs.parse_speech(item, 999) is None                                   # jiný poslanec
+    assert fs.parse_speech(item, 999) is None  # jiný poslanec
     other = {**item, "had_participation": {**item["had_participation"], "participation_role": "def/ep-roles/CHAIR"}}
     assert fs.parse_speech(other, 1) is None
 
@@ -46,7 +46,9 @@ def test_count_only_in_mandate_and_written_statements_separate():
     c = ac.count_activity(rows(), [{"start": "2024-07-16", "end": "2025-10-31"}])
     assert c == {"speeches": 2, "speeches_minutes": 3.0, "speeches_timed": 2, "speech_items": 1, "written_statements": 1}
     all_time = ac.count_activity(rows(), [{"start": "2019-07-02", "end": None}])
-    assert all_time["speeches"] == 4 and all_time["speeches_timed"] == 2 and all_time["written_statements"] == 1  # 2 projevy bez délky se počítají
+    assert (
+        all_time["speeches"] == 4 and all_time["speeches_timed"] == 2 and all_time["written_statements"] == 1
+    )  # 2 projevy bez délky se počítají
 
 
 def test_minutes_between_edge_cases():

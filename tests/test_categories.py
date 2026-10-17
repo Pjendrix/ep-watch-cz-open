@@ -11,7 +11,10 @@ def v(*codes):
 
 def test_primary_follows_priority_not_order():
     # AGILE: obrana má přednost před průmyslem a vědou
-    assert c.categories_for(v("3.45.02", "3.50.04", "6.10.02")) == ["def", "dig", "eco"] or c.categories_for(v("3.45.02", "3.50.04", "6.10.02"))[0] == "def"
+    assert (
+        c.categories_for(v("3.45.02", "3.50.04", "6.10.02")) == ["def", "dig", "eco"]
+        or c.categories_for(v("3.45.02", "3.50.04", "6.10.02"))[0] == "def"
+    )
     # nákladní auta: klima před dopravou před průmyslem
     assert c.categories_for(v("2.10.03", "3.20.05", "3.40.03", "3.70.02")) == ["env", "tra", "eco"]
 

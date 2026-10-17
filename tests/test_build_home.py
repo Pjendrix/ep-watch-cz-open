@@ -1,4 +1,5 @@
 """Úvodní stránka (data/home.json): pět nejnovějších závěrečných hlasování bez výběru, hlasy k datu hlasování, fakta z JSON."""
+
 import json
 import sys
 from pathlib import Path
@@ -27,7 +28,9 @@ def _with_extra_files(d):
     bw.run(d, "2024-10-20")
     (d / "splits.json").write_text(json.dumps({"unity": {"considered": 4, "united_final": 1, "considered_final": 2}}), encoding="utf-8")
     (d / "decisive.json").write_text(json.dumps({"votes": [{"id": 1}]}), encoding="utf-8")
-    (d / "work_hub.json").write_text(json.dumps({"updated": "2024-10-20", "totals": {"meps": 2, "speeches": 5, "questions": 3, "reports_lead": 1}}), encoding="utf-8")
+    (d / "work_hub.json").write_text(
+        json.dumps({"updated": "2024-10-20", "totals": {"meps": 2, "speeches": 5, "questions": 3, "reports_lead": 1}}), encoding="utf-8"
+    )
 
 
 def test_home_positions_at_vote_date_and_counts(data_dir):

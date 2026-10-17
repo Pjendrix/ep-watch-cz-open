@@ -33,11 +33,13 @@ def test_parse_mep_term10_only(person, get_body):
     assert m["mandates"] == [{"start": "2024-07-16", "end": "2025-10-03", "mandate_id": "900"}]
     # historie frakcí v 10. období, seřazená; stará frakce z 9. období vynechaná
     assert [(g["code"], g["start"], g["end"]) for g in m["groups"]] == [
-        ("PFE", "2024-07-16", "2025-02-03"), ("NI", "2025-02-04", "2025-10-03"),
+        ("PFE", "2024-07-16", "2025-02-03"),
+        ("NI", "2025-02-04", "2025-10-03"),
     ]
     assert m["groups"][0]["name_cs"] == "MOCK Patrioti"
-    assert m["parties"] == [{"org_id": "20", "short_label": "MOCK_P", "name": "MOCK strana",
-                             "role": "MEMBER", "start": "2024-07-16", "end": None}]
+    assert m["parties"] == [
+        {"org_id": "20", "short_label": "MOCK_P", "name": "MOCK strana", "role": "MEMBER", "start": "2024-07-16", "end": None}
+    ]
     # výbory ano, delegace ne
     assert [(c["code"], c["type"], c["role"]) for c in m["committees"]] == [
         ("ENVI", "STANDING", "MEMBER_SUBSTITUTE"),
@@ -56,19 +58,21 @@ def test_missing_gender_is_null(person, get_body):
 
 
 def test_missing_party_stays_empty(person, get_body):
-    person["hasMembership"] = [x for x in person["hasMembership"]
-                               if x.get("membershipClassification") != fm.CLS_PARTY]
+    person["hasMembership"] = [x for x in person["hasMembership"] if x.get("membershipClassification") != fm.CLS_PARTY]
     assert fm.parse_mep(person, get_body)["parties"] == []
 
 
-@pytest.mark.parametrize("mutate,msg", [
-    (lambda p: p.pop("hasMembership"), "chybí pole"),
-    (lambda p: p.pop("identifier"), "chybí pole"),
-    (lambda p: p["hasMembership"][1].pop("memberDuring"), "chybí pole"),
-    (lambda p: p["hasMembership"][1]["memberDuring"].pop("startDate"), "chybí pole"),
-    (lambda p: p["hasMembership"].pop(1), "nemá mandát"),
-    (lambda p: p["hasMembership"][1].update(represents=["x/SVK"]), "nereprezentuje ČR"),
-])
+@pytest.mark.parametrize(
+    "mutate,msg",
+    [
+        (lambda p: p.pop("hasMembership"), "chybí pole"),
+        (lambda p: p.pop("identifier"), "chybí pole"),
+        (lambda p: p["hasMembership"][1].pop("memberDuring"), "chybí pole"),
+        (lambda p: p["hasMembership"][1]["memberDuring"].pop("startDate"), "chybí pole"),
+        (lambda p: p["hasMembership"].pop(1), "nemá mandát"),
+        (lambda p: p["hasMembership"][1].update(represents=["x/SVK"]), "nereprezentuje ČR"),
+    ],
+)
 def test_format_errors(person, get_body, mutate, msg):
     p = copy.deepcopy(person)
     mutate(p)
@@ -106,7 +110,7 @@ class FakeSession:
         if path == "meps":
             items = self.routes["meps"]
             off, lim = params["offset"], params["limit"]
-            return FakeResponse({"data": items[off:off + lim]})
+            return FakeResponse({"data": items[off : off + lim]})
         return FakeResponse(self.routes[path])
 
 
@@ -149,6 +153,7 @@ def test_client_honours_retry_after(monkeypatch):
         def __init__(self):
             super().__init__({}, 429)
             self.headers = {"Retry-After": "7"}
+
     responses = [R429(), FakeResponse({"data": []})]
     slept = []
 
@@ -164,6 +169,7 @@ def test_client_honours_retry_after(monkeypatch):
 def test_client_retries_on_timeout_and_reports_last_error(monkeypatch):
     """Timeout nebo výpadek spojení se zkouší znovu; když se nepovede ani na osmý pokus, chyba to řekne."""
     import requests
+
     calls = []
 
     class S:

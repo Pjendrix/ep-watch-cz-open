@@ -6,8 +6,14 @@ from types import SimpleNamespace
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 import quiz_summaries as qs  # noqa: E402
 
-Q = {"id": 1, "procedure": "2025/0524(COD)", "title": "MOCK Změna nařízení (EU) 2021/1119 o klimatu do roku 2040",
-     "title_en": "MOCK climate law", "description": "Prozatímní dohoda", "topic": "env"}
+Q = {
+    "id": 1,
+    "procedure": "2025/0524(COD)",
+    "title": "MOCK Změna nařízení (EU) 2021/1119 o klimatu do roku 2040",
+    "title_en": "MOCK climate law",
+    "description": "Prozatímní dohoda",
+    "topic": "env",
+}
 
 
 class FakeApi:
@@ -74,8 +80,11 @@ def test_cli_backend_reads_structured_output(monkeypatch):
 
     def fake_run(cmd, **kw):
         seen["cmd"], seen["input"] = cmd, kw["input"]
-        out = {"is_error": False, "structured_output": {"nazev": "MOCK Klima", "shrnuti": "MOCK Zákon o klimatu."},
-               "modelUsage": {qs.MODEL: {}}}
+        out = {
+            "is_error": False,
+            "structured_output": {"nazev": "MOCK Klima", "shrnuti": "MOCK Zákon o klimatu."},
+            "modelUsage": {qs.MODEL: {}},
+        }
         return SimpleNamespace(returncode=0, stdout=json.dumps(out))
 
     monkeypatch.setattr(qs.subprocess, "run", fake_run)
@@ -90,6 +99,7 @@ def test_cli_backend_rejects_other_model_and_errors(monkeypatch):
     def run_with(out, code=0):
         monkeypatch.setattr(qs.subprocess, "run", lambda cmd, **kw: SimpleNamespace(returncode=code, stdout=json.dumps(out)))
         return qs.run(quiz(Q), {}, qs.CliBackend(), "d")["items"]
+
     ok = {"nazev": "MOCK", "shrnuti": "MOCK."}
     assert run_with({"structured_output": ok, "modelUsage": {"claude-opus-5-5": {}}}) == {}
     assert run_with({"is_error": True, "structured_output": ok}) == {}

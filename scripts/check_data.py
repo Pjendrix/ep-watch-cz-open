@@ -56,8 +56,7 @@ def _load(path: Path):
 
 
 def active_meps(meps: list[dict], day: str) -> list[dict]:
-    return [m for m in meps
-            if any(x["start"] <= day and (x["end"] is None or day <= x["end"]) for x in m["mandates"])]
+    return [m for m in meps if any(x["start"] <= day and (x["end"] is None or day <= x["end"]) for x in m["mandates"])]
 
 
 def check(prev_dir: Path | None, data_dir: Path, today: str, seats: int = CZ_SEATS) -> tuple[list[str], list[str]]:
@@ -140,8 +139,10 @@ def check_delegations(data_dir: Path) -> tuple[list[str], list[str]]:
     stats = _load(data_dir / "stats.json")
     unity = ((stats or {}).get("votes_analysis") or {}).get("unity")
     if unity and own["unity"] != [unity["united"], unity["considered"]]:
-        warnings.append(f"delegations.json: jednotnost ČR {own['unity']} se liší od stats.json "
-                        f"{[unity['united'], unity['considered']]} (poslanci mimo mandát?)")
+        warnings.append(
+            f"delegations.json: jednotnost ČR {own['unity']} se liší od stats.json "
+            f"{[unity['united'], unity['considered']]} (poslanci mimo mandát?)"
+        )
     return problems, warnings
 
 

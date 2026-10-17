@@ -62,7 +62,6 @@ def test_one_vacant_seat_is_only_warning(states, capsys):
     assert cd.main(["--prev", str(prev), "--data", str(new), "--today", "2025-01-15"]) == 1  # 21 míst, 2 aktivní
 
 
-
 def test_main_exit_code(states):
     prev, new = states
     write_state(new, [("2024-09", 1)], [mep(1)])
@@ -71,16 +70,23 @@ def test_main_exit_code(states):
 
 def test_logo_warnings(tmp_path):
     import check_data as cd
+
     public, data = tmp_path / "public", tmp_path / "data"
     (public / "assets").mkdir(parents=True)
     data.mkdir()
     (public / "assets" / "ok.svg").write_text("<svg><path d='M0 0'/></svg>", encoding="utf-8")
     (public / "assets" / "bad.svg").write_text("<svg onload='x()'><a href='https://example.test'/></svg>", encoding="utf-8")
     (public / "assets" / "big.png").write_bytes(b"0" * 70_000)
-    (data / "groups.json").write_text(json.dumps([
-        {"code": "A", "logo": "assets/ok.svg", "logo_source": "MOCK"},
-        {"code": "B", "logo": "assets/bad.svg", "logo_source": "MOCK"},
-        {"code": "C", "logo": "assets/big.png", "logo_source": None}]), encoding="utf-8")
+    (data / "groups.json").write_text(
+        json.dumps(
+            [
+                {"code": "A", "logo": "assets/ok.svg", "logo_source": "MOCK"},
+                {"code": "B", "logo": "assets/bad.svg", "logo_source": "MOCK"},
+                {"code": "C", "logo": "assets/big.png", "logo_source": None},
+            ]
+        ),
+        encoding="utf-8",
+    )
     w = " | ".join(cd.check_logos(data, public))
     assert "A" not in [x.split()[1] for x in cd.check_logos(data, public)]
     assert "SVG assets/bad.svg" in w and "70 kB" in w and "C (assets/big.png) nemá" in w
@@ -101,7 +107,8 @@ def test_delegations_checked(tmp_path):
 
 def test_speeches_checked(tmp_path):
     prev, new = tmp_path / "prev", tmp_path / "new"
-    prev.mkdir(); new.mkdir()
+    prev.mkdir()
+    new.mkdir()
     assert cd.check_speeches(prev, new) == []  # soubory chybí
     (prev / "speeches.json").write_text(json.dumps({"meps": {"1": [{"id": "a"}, {"id": "b"}], "2": []}}))
     (new / "speeches.json").write_text(json.dumps({"meps": {"1": [{"id": "a"}, {"id": "b"}, {"id": "c"}], "2": []}}))
@@ -113,10 +120,15 @@ def test_speeches_checked(tmp_path):
 
 def test_attendance_checked(tmp_path):
     prev, new = tmp_path / "prev", tmp_path / "new"
-    prev.mkdir(); new.mkdir()
+    prev.mkdir()
+    new.mkdir()
     assert cd.check_attendance(prev, new) == []
-    (prev / "attendance.json").write_text(json.dumps({"days": [{"date": "2025-01-01", "attendees": 5}, {"date": "2025-01-02", "attendees": 5}]}))
-    (new / "attendance.json").write_text(json.dumps({"days": [{"date": "2025-01-01", "attendees": 5}, {"date": "2025-01-02", "attendees": 0}]}))
+    (prev / "attendance.json").write_text(
+        json.dumps({"days": [{"date": "2025-01-01", "attendees": 5}, {"date": "2025-01-02", "attendees": 5}]})
+    )
+    (new / "attendance.json").write_text(
+        json.dumps({"days": [{"date": "2025-01-01", "attendees": 5}, {"date": "2025-01-02", "attendees": 0}]})
+    )
     problems = cd.check_attendance(prev, new)
     assert any("prázdná" in p for p in problems) and not any("klesl" in p for p in problems)
     (new / "attendance.json").write_text(json.dumps({"days": [{"date": "2025-01-01", "attendees": 5}]}))

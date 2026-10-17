@@ -27,8 +27,7 @@ import json
 import sys
 from pathlib import Path
 
-from compute_stats import (CLOSE_MARGIN, POSITIONS, FormatError, active_positions, in_mandate, load_votes,
-                           require, topic_codes)
+from compute_stats import CLOSE_MARGIN, POSITIONS, FormatError, active_positions, in_mandate, load_votes, require, topic_codes
 from activity import count_activity
 from attendance import count_presence
 from category_stats import category_stats
@@ -45,8 +44,22 @@ RECENT_MAIN = 15
 LAST_SESSION_LIMIT = 50
 SHORT_MANDATE_DAYS = 60
 # Nová pole jsou na konci, aby starší web četl řádky beze změny. is_final a inverted web odvodí z vote_kind.
-SEARCH_FIELDS = ["id", "date", "month", "title", "reference", "description", "amendment_number",
-                 "result", "is_main", "cz", "vote_kind", "description_cs", "topics", "cats"]
+SEARCH_FIELDS = [
+    "id",
+    "date",
+    "month",
+    "title",
+    "reference",
+    "description",
+    "amendment_number",
+    "result",
+    "is_main",
+    "cz",
+    "vote_kind",
+    "description_cs",
+    "topics",
+    "cats",
+]
 
 
 def current(items: list[dict], day: str) -> dict | None:
@@ -90,24 +103,38 @@ def load_topic_labels(path: Path) -> dict:
     return doc["labels"]
 
 
-def build_search(votes: list[dict], meps_by_id: dict, topic_labels: dict | None = None,
-                 oeil: dict | None = None) -> dict:
+def build_search(votes: list[dict], meps_by_id: dict, topic_labels: dict | None = None, oeil: dict | None = None) -> dict:
     topic_labels, oeil = topic_labels or {}, oeil or {}
     rows, used = [], set()
     for v in votes:
         k = kind_fields(v)
-        rows.append([v["id"], v["date"], v["date"][:7], vote_title(v), v.get("reference"), v.get("description"),
-                     v.get("amendment_number"), v.get("result"), v["is_main"], cz_counts(v, meps_by_id),
-                     k["vote_kind"], k["description_cs"], sorted(topic_codes(v)), categories_for(v)])
+        rows.append(
+            [
+                v["id"],
+                v["date"],
+                v["date"][:7],
+                vote_title(v),
+                v.get("reference"),
+                v.get("description"),
+                v.get("amendment_number"),
+                v.get("result"),
+                v["is_main"],
+                cz_counts(v, meps_by_id),
+                k["vote_kind"],
+                k["description_cs"],
+                sorted(topic_codes(v)),
+                categories_for(v),
+            ]
+        )
         used |= topic_codes(v)
     labels = {c: topic_labels.get(c) or oeil.get(c) for c in sorted(used)}
-    return {"fields": SEARCH_FIELDS, "positions_order": POSITIONS, "kind_labels": KIND_LABELS,
-            "topic_labels": labels, "rows": rows}
+    return {"fields": SEARCH_FIELDS, "positions_order": POSITIONS, "kind_labels": KIND_LABELS, "topic_labels": labels, "rows": rows}
 
 
 def mandate_days(mandates: list[dict], day: str) -> int:
     """Součet dní mandátu (včetně krajních), otevřený mandát do daného dne."""
     import datetime as dt
+
     total = 0
     for x in mandates:
         start = dt.date.fromisoformat(x["start"])
@@ -119,8 +146,13 @@ def mandate_days(mandates: list[dict], day: str) -> int:
 def mep_summary(m: dict, day: str) -> dict:
     g, p = current(m["groups"], day), current(m["parties"], day)
     return {
-        "id": m["id"], "name": m["name"], "given_name": m.get("given_name"), "family_name": m.get("family_name"),
-        "sort_label": m.get("sort_label"), "gender": m.get("gender"), "photo_url": m.get("photo_url"),
+        "id": m["id"],
+        "name": m["name"],
+        "given_name": m.get("given_name"),
+        "family_name": m.get("family_name"),
+        "sort_label": m.get("sort_label"),
+        "gender": m.get("gender"),
+        "photo_url": m.get("photo_url"),
         "mandates": m["mandates"],
         "short_mandate": mandate_days(m["mandates"], day) < SHORT_MANDATE_DAYS,
         "group": {"code": g["code"], "short_label": g["short_label"]} if g else None,
@@ -128,14 +160,22 @@ def mep_summary(m: dict, day: str) -> dict:
     }
 
 
-def build_overview(meps: list[dict], stats: dict, day: str, topic_labels: dict | None = None,
-                   bench: dict | None = None) -> dict:
+def build_overview(meps: list[dict], stats: dict, day: str, topic_labels: dict | None = None, bench: dict | None = None) -> dict:
     return {
-        "sources": stats["sources"], "period": stats["period"], "votes_total": stats["votes_total"],
+        "sources": stats["sources"],
+        "period": stats["period"],
+        "votes_total": stats["votes_total"],
         "topics": [{**t, "label_cs": (topic_labels or {}).get(t["code"])} for t in stats.get("topics", [])],
-        "definitions": stats["definitions"], "short_mandate_days": SHORT_MANDATE_DAYS,
-        "meps": [{**mep_summary(m, day), "total": stats["meps"][str(m["id"])]["total"],
-                  "bench_key": bench_key(m) if bench_window(m, bench) else None} for m in meps],
+        "definitions": stats["definitions"],
+        "short_mandate_days": SHORT_MANDATE_DAYS,
+        "meps": [
+            {
+                **mep_summary(m, day),
+                "total": stats["meps"][str(m["id"])]["total"],
+                "bench_key": bench_key(m) if bench_window(m, bench) else None,
+            }
+            for m in meps
+        ],
     }
 
 
@@ -147,10 +187,20 @@ def recent_main_votes(mep: dict, votes: list[dict], limit: int = RECENT_MAIN) ->
         pos = next((p for p in v["cz_positions"] if p["member_id"] == mep["id"]), None)
         if pos is None:
             continue
-        out.append({"id": v["id"], "date": v["date"], "month": v["date"][:7], "title": vote_title(v),
-                    "reference": v.get("reference"), "description": v.get("description"),
-                    "result": v.get("result"), "position": pos["position"], "group_code": pos["group_code"],
-                    **kind_fields(v)})
+        out.append(
+            {
+                "id": v["id"],
+                "date": v["date"],
+                "month": v["date"][:7],
+                "title": vote_title(v),
+                "reference": v.get("reference"),
+                "description": v.get("description"),
+                "result": v.get("result"),
+                "position": pos["position"],
+                "group_code": pos["group_code"],
+                **kind_fields(v),
+            }
+        )
         if len(out) >= limit:
             break
     return out
@@ -158,22 +208,42 @@ def recent_main_votes(mep: dict, votes: list[dict], limit: int = RECENT_MAIN) ->
 
 def vote_summary(v: dict, meps_by_id: dict) -> dict:
     """Krátký popis hlasování pro seznamy na webu."""
-    return {"id": v["id"], "date": v["date"], "month": v["date"][:7], "title": vote_title(v),
-            "reference": v.get("reference"), "description": v.get("description"), "result": v.get("result"),
-            "is_main": v["is_main"], "counts": v["counts"], "cz": cz_counts(v, meps_by_id),
-            "amendment_number": v.get("amendment_number"), "texts_adopted_reference": v.get("texts_adopted_reference"),
-            "cats": categories_for(v), **kind_fields(v)}
+    return {
+        "id": v["id"],
+        "date": v["date"],
+        "month": v["date"][:7],
+        "title": vote_title(v),
+        "reference": v.get("reference"),
+        "description": v.get("description"),
+        "result": v.get("result"),
+        "is_main": v["is_main"],
+        "counts": v["counts"],
+        "cz": cz_counts(v, meps_by_id),
+        "amendment_number": v.get("amendment_number"),
+        "texts_adopted_reference": v.get("texts_adopted_reference"),
+        "cats": categories_for(v),
+        **kind_fields(v),
+    }
 
 
 def cz_positions(v: dict, meps_by_id: dict) -> list[dict]:
-    return [{"member_id": p["member_id"], "position": p["position"], "group_code": p["group_code"],
-             "national_party_id": p.get("national_party_id")} for p in active_positions(v, meps_by_id)]
+    return [
+        {
+            "member_id": p["member_id"],
+            "position": p["position"],
+            "group_code": p["group_code"],
+            "national_party_id": p.get("national_party_id"),
+        }
+        for p in active_positions(v, meps_by_id)
+    ]
 
 
 def topic_rows(topics_stats: dict, topics_meta: list[dict], topic_labels: dict | None = None) -> list[dict]:
-    return [{"code": t["code"], "label": t["label"], "label_cs": (topic_labels or {}).get(t["code"]),
-             **topics_stats[t["code"]]}
-            for t in topics_meta if t["code"] in topics_stats]
+    return [
+        {"code": t["code"], "label": t["label"], "label_cs": (topic_labels or {}).get(t["code"]), **topics_stats[t["code"]]}
+        for t in topics_meta
+        if t["code"] in topics_stats
+    ]
 
 
 def last_group_code(mep: dict, votes: list[dict]) -> str | None:
@@ -192,9 +262,15 @@ def mep_benchmarks(mep: dict, votes: list[dict], bench: dict | None) -> dict | N
     code = last_group_code(mep, votes)
     w = bench_window(mep, bench)
     src = w or bench  # poslanec s kratším mandátem: mediány jen z hlasování v době jeho mandátu (D7)
-    return {"source": bench.get("source"), "definition": bench.get("definition"), "min_votes": src.get("min_votes"),
-            "ep": src["ep"], "group_code": code, "group": src["groups"].get(code) if code else None,
-            "window": {"from": w["from"], "to": w["to"], "votes": w["votes"]} if w else None}
+    return {
+        "source": bench.get("source"),
+        "definition": bench.get("definition"),
+        "min_votes": src.get("min_votes"),
+        "ep": src["ep"],
+        "group_code": code,
+        "group": src["groups"].get(code) if code else None,
+        "window": {"from": w["from"], "to": w["to"], "votes": w["votes"]} if w else None,
+    }
 
 
 def bench_key(mep: dict) -> str:
@@ -207,9 +283,19 @@ def bench_window(mep: dict, bench: dict | None) -> dict | None:
     return ((bench or {}).get("windows") or {}).get(bench_key(mep))
 
 
-def build_profile(mep: dict, meps: list[dict], stats: dict, votes: list[dict], day: str,
-                  votes_by_id: dict | None = None, own: dict | None = None, topic_labels: dict | None = None,
-                  bench: dict | None = None, activity: dict | None = None, presence: dict | None = None) -> dict:
+def build_profile(
+    mep: dict,
+    meps: list[dict],
+    stats: dict,
+    votes: list[dict],
+    day: str,
+    votes_by_id: dict | None = None,
+    own: dict | None = None,
+    topic_labels: dict | None = None,
+    bench: dict | None = None,
+    activity: dict | None = None,
+    presence: dict | None = None,
+) -> dict:
     st = stats["meps"][str(mep["id"])]
     meps_by_id = {m["id"]: m for m in meps}
     votes_by_id = votes_by_id or {v["id"]: v for v in votes}
@@ -231,16 +317,23 @@ def build_profile(mep: dict, meps: list[dict], stats: dict, votes: list[dict], d
         "pairwise": pairwise,
         "recent_main_votes": recent_main_votes(mep, votes),
         "benchmarks": mep_benchmarks(mep, votes, bench),
-        "against_group": {"count": ag["count"], "count_main": ag["count_main"],
-                          **{k: ag.get(k) for k in ("party_known", "with_party", "party_known_main", "with_party_main")},
-                          "recent": [with_vote(x) for x in ag["recent"]],
-                          "recent_main": [with_vote(x) for x in ag["recent_main"]]},
+        "against_group": {
+            "count": ag["count"],
+            "count_main": ag["count_main"],
+            **{k: ag.get(k) for k in ("party_known", "with_party", "party_known_main", "with_party_main")},
+            "recent": [with_vote(x) for x in ag["recent"]],
+            "recent_main": [with_vote(x) for x in ag["recent_main"]],
+        },
         "decisive": [with_vote(x) for x in st.get("decisive", [])],
         "topics": topic_rows(st.get("topics", {}), stats.get("topics", []), topic_labels),
         "activity": activity,
         "presence": presence,
-        "own_work": None if own is None else {
-            "source": own["source"], "updated": own["updated"], "complete": own["complete"],
+        "own_work": None
+        if own is None
+        else {
+            "source": own["source"],
+            "updated": own["updated"],
+            "complete": own["complete"],
             "type_labels": own["type_labels"],
             **own["meps"].get(str(mep["id"]), {"summary": {}, "items": []}),
         },
@@ -250,29 +343,50 @@ def build_profile(mep: dict, meps: list[dict], stats: dict, votes: list[dict], d
 def build_decisive(stats: dict, votes_by_id: dict, meps_by_id: dict) -> dict:
     va = stats["votes_analysis"]
     return {
-        "sources": stats["sources"], "close_margin": CLOSE_MARGIN,
-        "close_count": va["close"]["count"], "close_count_main": va["close"]["count_main"],
+        "sources": stats["sources"],
+        "close_margin": CLOSE_MARGIN,
+        "close_count": va["close"]["count"],
+        "close_count_main": va["close"]["count_main"],
         "decisive_final": sum(is_final(votes_by_id[d["id"]]) for d in va["decisive"]),
-        "definition": stats["definitions"].get("decisive_votes"), "kind_labels": KIND_LABELS,
-        "votes": [{**vote_summary(votes_by_id[d["id"]], meps_by_id), "alternative_result": d["alternative_result"],
-                   "positions": cz_positions(votes_by_id[d["id"]], meps_by_id)} for d in va["decisive"]],
+        "definition": stats["definitions"].get("decisive_votes"),
+        "kind_labels": KIND_LABELS,
+        "votes": [
+            {
+                **vote_summary(votes_by_id[d["id"]], meps_by_id),
+                "alternative_result": d["alternative_result"],
+                "positions": cz_positions(votes_by_id[d["id"]], meps_by_id),
+            }
+            for d in va["decisive"]
+        ],
     }
 
 
 def build_splits(stats: dict, votes_by_id: dict, meps_by_id: dict) -> dict:
     sp = stats["votes_analysis"]["splits"]
+
     # Pozice jen jako {ID poslance: volba} a frakce k datu hlasování {ID: kód}, aby soubor zůstal malý.
     def item(x):
         pos = cz_positions(votes_by_id[x["id"]], meps_by_id)
-        return {**vote_summary(votes_by_id[x["id"]], meps_by_id), "split": x["split"],
-                "positions": {str(p["member_id"]): p["position"] for p in pos},
-                "groups": {str(p["member_id"]): p["group_code"] for p in pos}}
+        return {
+            **vote_summary(votes_by_id[x["id"]], meps_by_id),
+            "split": x["split"],
+            "positions": {str(p["member_id"]): p["position"] for p in pos},
+            "groups": {str(p["member_id"]): p["group_code"] for p in pos},
+        }
+
     ls = sp["last_session"]
     return {
-        "sources": stats["sources"], "count": sp["count"], "count_main": sp["count_main"],
+        "sources": stats["sources"],
+        "count": sp["count"],
+        "count_main": sp["count_main"],
         "unity": stats["votes_analysis"].get("unity"),
-        "last_session": {"from": ls["from"], "to": ls["to"], "votes": ls["votes"], "split_count": len(ls["split"]),
-                         "split": [item(x) for x in ls["split"][:LAST_SESSION_LIMIT]]},
+        "last_session": {
+            "from": ls["from"],
+            "to": ls["to"],
+            "votes": ls["votes"],
+            "split_count": len(ls["split"]),
+            "split": [item(x) for x in ls["split"][:LAST_SESSION_LIMIT]],
+        },
         "all": [item(x) for x in sp["all"]],
         "main": [item(x) for x in sp["main"]],
     }
@@ -286,8 +400,11 @@ def build_session(stats: dict, votes: list[dict], votes_by_id: dict, meps_by_id:
     decisive = [d for d in stats["votes_analysis"]["decisive"] if d["id"] in {v["id"] for v in in_session}]
     item = lambda vid, **kw: {**vote_summary(votes_by_id[vid], meps_by_id), **kw}
     return {
-        "sources": stats["sources"], "from": ls["from"], "to": ls["to"],
-        "votes": len(in_session), "main": sum(is_final(v) for v in in_session),
+        "sources": stats["sources"],
+        "from": ls["from"],
+        "to": ls["to"],
+        "votes": len(in_session),
+        "main": sum(is_final(v) for v in in_session),
         "adopted_main": sum(is_final(v) and v.get("result") == "ADOPTED" for v in in_session),
         "split_count": len(ls["split"]),
         "unity": (stats["votes_analysis"].get("unity") or {}).get("last_session"),
@@ -300,8 +417,15 @@ def build_session(stats: dict, votes: list[dict], votes_by_id: dict, meps_by_id:
     }
 
 
-PASSED_KEYS = ["lead_adopted", "lead_adopted_legislative", "lead_pending", "shadow_adopted",
-               "shadow_adopted_legislative", "shadow_pending", "resolutions_adopted"]
+PASSED_KEYS = [
+    "lead_adopted",
+    "lead_adopted_legislative",
+    "lead_pending",
+    "shadow_adopted",
+    "shadow_adopted_legislative",
+    "shadow_pending",
+    "resolutions_adopted",
+]
 
 
 ROLE_KEYS = ["lead_reports", "lead_opinions", "shadow_reports", "shadow_opinions", "motions_signed"]
@@ -314,10 +438,16 @@ FUNCTION_ROLES = {"committee": ("CHAIR", "CHAIR_VICE"), "group": ("CHAIR", "CHAI
 def functions(m: dict, day: str) -> list[dict]:
     """Funkce platné k danému dni: předseda/místopředseda výboru, předseda/místopředseda/předsednictvo frakce."""
     active = lambda x: x["start"] <= day and (x["end"] is None or day <= x["end"])
-    out = [{"kind": "committee", "role": x["role"], "code": x["code"], "name_cs": x.get("name_cs")}
-           for x in m.get("committees", []) if x.get("role") in FUNCTION_ROLES["committee"] and active(x)]
-    out += [{"kind": "group", "role": x["role"], "code": x["code"], "name_cs": x.get("name_cs")}
-            for x in m.get("groups", []) if x.get("role") in FUNCTION_ROLES["group"] and active(x)]
+    out = [
+        {"kind": "committee", "role": x["role"], "code": x["code"], "name_cs": x.get("name_cs")}
+        for x in m.get("committees", [])
+        if x.get("role") in FUNCTION_ROLES["committee"] and active(x)
+    ]
+    out += [
+        {"kind": "group", "role": x["role"], "code": x["code"], "name_cs": x.get("name_cs")}
+        for x in m.get("groups", [])
+        if x.get("role") in FUNCTION_ROLES["group"] and active(x)
+    ]
     order = {"CHAIR": 0, "CHAIR_VICE": 1, "MEMBER_BUREAU": 2}
     return sorted(out, key=lambda f: (f["kind"] != "committee", order[f["role"]], f["code"] or ""))
 
@@ -336,8 +466,14 @@ def presence_by_mep(meps: list[dict], attendance: dict | None) -> dict[int, dict
     return {m["id"]: count_presence(attendance["days"], m["id"], m["mandates"]) for m in meps}
 
 
-def build_work(meps: list[dict], own: dict | None, day: str, stats: dict | None = None,
-               activity: dict[int, dict] | None = None, presence: dict[int, dict] | None = None) -> dict | None:
+def build_work(
+    meps: list[dict],
+    own: dict | None,
+    day: str,
+    stats: dict | None = None,
+    activity: dict[int, dict] | None = None,
+    presence: dict[int, dict] | None = None,
+) -> dict | None:
     """Profil vlastní práce: počty z own_work.json (spočítal own_work.passed / roles / delegation_profile),
     docházka ze stats.json a funkce z meps.json, nic nového."""
     if own is None:
@@ -348,11 +484,18 @@ def build_work(meps: list[dict], own: dict | None, day: str, stats: dict | None 
         passed = entry.get("passed") or {}
         roles = entry.get("roles") or {}
         total = ((stats or {}).get("meps", {}).get(str(m["id"])) or {}).get("total") or {}
-        rows.append({**mep_summary(m, day), **{k: passed.get(k, 0) for k in PASSED_KEYS},
-                     **{k: roles.get(k, 0) for k in ROLE_KEYS}, "delegation": roles.get("delegation"),
-                     "attendance": total.get("attendance"), "functions": functions(m, day),
-                     **{k: (activity or {}).get(m["id"], {}).get(k) for k in ("speeches", "speeches_minutes", "written_statements")},
-                     "presence": (presence or {}).get(m["id"])})
+        rows.append(
+            {
+                **mep_summary(m, day),
+                **{k: passed.get(k, 0) for k in PASSED_KEYS},
+                **{k: roles.get(k, 0) for k in ROLE_KEYS},
+                "delegation": roles.get("delegation"),
+                "attendance": total.get("attendance"),
+                "functions": functions(m, day),
+                **{k: (activity or {}).get(m["id"], {}).get(k) for k in ("speeches", "speeches_minutes", "written_statements")},
+                "presence": (presence or {}).get(m["id"]),
+            }
+        )
     return {"source": own["source"], "updated": own["updated"], "complete": own["complete"], "meps": rows}
 
 
@@ -375,7 +518,8 @@ def build_vote_roles(own: dict | None) -> dict[str, list[dict]]:
 def build_agreement(meps: list[dict], stats: dict, day: str) -> dict:
     """Matice shody: pro každou dvojici [stejně, oba hlasovali]."""
     return {
-        "sources": stats["sources"], "definition": stats["definitions"].get("pairwise"),
+        "sources": stats["sources"],
+        "definition": stats["definitions"].get("pairwise"),
         "meps": [mep_summary(m, day) for m in sorted(meps, key=lambda m: m.get("sort_label") or m["name"])],
         "matrix": {str(m["id"]): stats["meps"][str(m["id"])]["pairwise"] for m in meps},
     }
@@ -386,8 +530,9 @@ def party_reports(pid: str, meps: list[dict], own: dict | None) -> dict | None:
     Strana se bere k datu zprávy (období ve straně podle EP), bez pořadí a bez hodnocení. Bez own_work.json None."""
     if not own:
         return None
-    in_party = lambda m, d: bool(d) and any(p["org_id"] == pid and p["start"] <= d and (not p.get("end") or d <= p["end"])
-                                            for p in m["parties"])
+    in_party = lambda m, d: bool(d) and any(
+        p["org_id"] == pid and p["start"] <= d and (not p.get("end") or d <= p["end"]) for p in m["parties"]
+    )
     reports, shadow = [], 0
     for m in meps:
         for it in (own["meps"].get(str(m["id"])) or {}).get("items", []):
@@ -396,15 +541,23 @@ def party_reports(pid: str, meps: list[dict], own: dict | None) -> dict | None:
             if it["type"] == "shadow_report":
                 shadow += 1
                 continue
-            reports.append({"mep_id": m["id"], "role": "co" if it.get("role") == "RAPPORTEUR_CO" else "rapporteur",
-                            "label": it.get("label"), "title_cs": (it.get("title") or {}).get("cs"), "url": it.get("url"),
-                            "date": it["date"], "status": it.get("status"), "vote_id": it.get("vote_id")})
+            reports.append(
+                {
+                    "mep_id": m["id"],
+                    "role": "co" if it.get("role") == "RAPPORTEUR_CO" else "rapporteur",
+                    "label": it.get("label"),
+                    "title_cs": (it.get("title") or {}).get("cs"),
+                    "url": it.get("url"),
+                    "date": it["date"],
+                    "status": it.get("status"),
+                    "vote_id": it.get("vote_id"),
+                }
+            )
     reports.sort(key=lambda r: (r["date"], r["label"] or ""), reverse=True)
     return {"items": reports, "shadow_count": shadow, "source": own["source"], "updated": own.get("updated")}
 
 
-def build_parties_web(stats: dict, parties: list[dict], meps: list[dict], votes_by_id: dict, day: str,
-                      own: dict | None = None) -> tuple:
+def build_parties_web(stats: dict, parties: list[dict], meps: list[dict], votes_by_id: dict, day: str, own: dict | None = None) -> tuple:
     meps_by_id = {m["id"]: m for m in meps}
     index, pages = [], {}
     for party in parties:
@@ -416,24 +569,36 @@ def build_parties_web(stats: dict, parties: list[dict], meps: list[dict], votes_
         for m in meps:
             periods = [{"start": p["start"], "end": p["end"]} for p in m["parties"] if p["org_id"] == pid]
             if periods:
-                members.append({**mep_summary(m, day), "party_periods": periods,
-                                "total": stats["meps"][str(m["id"])]["total"]})
-        summary = {**party, "members": len(members), "total": st["total"], "cohesion": st["cohesion"],
-                   "cohesion_main": st["cohesion_main"], "splits_count": st["splits"]["count"],
-                   "splits_count_main": st["splits"]["count_main"]}
+                members.append({**mep_summary(m, day), "party_periods": periods, "total": stats["meps"][str(m["id"])]["total"]})
+        summary = {
+            **party,
+            "members": len(members),
+            "total": st["total"],
+            "cohesion": st["cohesion"],
+            "cohesion_main": st["cohesion_main"],
+            "splits_count": st["splits"]["count"],
+            "splits_count_main": st["splits"]["count_main"],
+        }
         index.append(summary)
-        split_item = lambda vid: {**vote_summary(votes_by_id[vid], meps_by_id),
-                                  "positions": [p for p in cz_positions(votes_by_id[vid], meps_by_id)
-                                                if str(p["national_party_id"]) == pid]}  # noqa: B023 (volá se v téže iteraci)
-        pages[pid] = {**summary, "sources": stats["sources"], "definitions": stats["definitions"],
-                      "member_list": members, "reports": party_reports(pid, meps, own),
-                      "splits": [split_item(v) for v in st["splits"]["recent"]],
-                      "splits_main": [split_item(v) for v in st["splits"]["recent_main"]]}
+        split_item = lambda vid, pid=pid: {
+            **vote_summary(votes_by_id[vid], meps_by_id),
+            "positions": [p for p in cz_positions(votes_by_id[vid], meps_by_id) if str(p["national_party_id"]) == pid],
+        }
+        pages[pid] = {
+            **summary,
+            "sources": stats["sources"],
+            "definitions": stats["definitions"],
+            "member_list": members,
+            "reports": party_reports(pid, meps, own),
+            "splits": [split_item(v) for v in st["splits"]["recent"]],
+            "splits_main": [split_item(v) for v in st["splits"]["recent_main"]],
+        }
     return {"sources": stats["sources"], "parties": index}, pages
 
 
-def build_eu_groups(votes: list[dict], votes_by_id: dict, meps: list[dict], stats: dict, groups: list[dict],
-                    group_web: dict | None, day: str) -> tuple[dict, dict]:
+def build_eu_groups(
+    votes: list[dict], votes_by_id: dict, meps: list[dict], stats: dict, groups: list[dict], group_web: dict | None, day: str
+) -> tuple[dict, dict]:
     """Politické skupiny EP (index + stránky): souhrn celé skupiny z group_counts a čeští členové (data/eugroups/)."""
     gs = build_group_stats(votes)
     by_ep = {g.get("ep_code"): g["code"] for g in groups}
@@ -450,14 +615,27 @@ def build_eu_groups(votes: list[dict], votes_by_id: dict, meps: list[dict], stat
                 members.append({**mep_summary(m, day), "total": stats["meps"][str(m["id"])]["total"]})
         st = gs[code]
         row = lambda vid: {**vote_summary(votes_by_id[vid], meps_by_id), "gc": votes_by_id[vid]["group_counts"][code]}  # noqa: B023
-        summary = {**{k: g.get(k) for k in ("code", "short_label", "name_cs", "label", "color", "chart_color", "logo", "logo_aspect")},
-                   "web": ((group_web or {}).get("groups") or {}).get(code, {}).get("web"), "cz_members": len(members),
-                   "attendance": st["attendance"], "attendance_main": st["attendance_main"], "majority": st["majority"],
-                   "majority_main": st["majority_main"], "splits": st["splits"], "considered": st["considered"],
-                   "splits_main": st["splits_main"], "considered_main": st["considered_main"]}
+        summary = {
+            **{k: g.get(k) for k in ("code", "short_label", "name_cs", "label", "color", "chart_color", "logo", "logo_aspect")},
+            "web": ((group_web or {}).get("groups") or {}).get(code, {}).get("web"),
+            "cz_members": len(members),
+            "attendance": st["attendance"],
+            "attendance_main": st["attendance_main"],
+            "majority": st["majority"],
+            "majority_main": st["majority_main"],
+            "splits": st["splits"],
+            "considered": st["considered"],
+            "splits_main": st["splits_main"],
+            "considered_main": st["considered_main"],
+        }
         index.append(summary)
-        pages[code] = {**summary, "sources": stats["sources"], "member_list": members,
-                       "splits_list": [row(v) for v in st["split_ids"]], "splits_list_main": [row(v) for v in st["split_ids_main"]]}
+        pages[code] = {
+            **summary,
+            "sources": stats["sources"],
+            "member_list": members,
+            "splits_list": [row(v) for v in st["split_ids"]],
+            "splits_list_main": [row(v) for v in st["split_ids_main"]],
+        }
     index.sort(key=lambda r: (-r["cz_members"], r["short_label"]))
     web_src = (group_web or {}).get("source")
     return {"sources": {**stats["sources"], **({"group_web": web_src} if web_src else {})}, "groups": index}, pages
@@ -490,15 +668,17 @@ def build_freshness(release: str | None, agenda: dict | None) -> dict:
     (bez zasedání nová hlasování být nemohou, stará data jsou pak aktuální)."""
     day = release[:10] if release and len(release) >= 10 else None
     sittings = (agenda or {}).get("sittings") or []
-    return {"note": "Datum exportu hlasování a plenární dny po něm (EP Open Data API). Generuje scripts/build_web.py.",
-            "release": day, "stale_days": STALE_DAYS,
-            "sittings_after": sorted(d for d in sittings if day and d > day)}
+    return {
+        "note": "Datum exportu hlasování a plenární dny po něm (EP Open Data API). Generuje scripts/build_web.py.",
+        "release": day,
+        "stale_days": STALE_DAYS,
+        "sittings_after": sorted(d for d in sittings if day and d > day),
+    }
 
 
 def write_json(path: Path, obj, compact: bool = False) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    text = json.dumps(obj, ensure_ascii=False, separators=(",", ":")) if compact else \
-        json.dumps(obj, ensure_ascii=False, indent=1)
+    text = json.dumps(obj, ensure_ascii=False, separators=(",", ":")) if compact else json.dumps(obj, ensure_ascii=False, indent=1)
     path.write_text(text + "\n", encoding="utf-8")
 
 
@@ -543,13 +723,18 @@ def run(data_dir: Path, day: str) -> dict:
     write_json(data_dir / "overview.json", build_overview(meps, stats, day, topic_labels, bench))
     write_json(data_dir / "agreement.json", build_agreement(meps, stats, day), compact=True)
     if own is not None:
-        write_json(data_dir / "vote_roles.json", {"source": own["source"], "updated": own["updated"],
-                                                  "votes": build_vote_roles(own)}, compact=True)
+        write_json(
+            data_dir / "vote_roles.json", {"source": own["source"], "updated": own["updated"], "votes": build_vote_roles(own)}, compact=True
+        )
     work = build_work(meps, own, day, stats, activity, presence)
     if own is not None:
         info = {m["id"]: mep_summary(m, day) for m in meps}
         hub = build_work_hub(own, meps, info, speeches, attendance)
-        hub["sources"] = {"own_work": own["source"], "speeches": (activity_info or {}).get("source"), "presence": (presence_info or {}).get("source")}
+        hub["sources"] = {
+            "own_work": own["source"],
+            "speeches": (activity_info or {}).get("source"),
+            "presence": (presence_info or {}).get("source"),
+        }
         write_json(data_dir / "work_hub.json", hub)
     if work is not None and activity_info:
         work["activity_source"] = activity_info
@@ -561,23 +746,44 @@ def run(data_dir: Path, day: str) -> dict:
         write_json(data_dir / "work.json", work)
     profiles_dir = data_dir / "meps"
     for m in meps:
-        write_json(profiles_dir / f"{m['id']}.json", build_profile(m, meps, stats, votes, day, votes_by_id, own,
-                                                                      topic_labels, bench,
-                                                                      {**activity[m["id"]], **activity_info} if activity_info else None,
-                                                                      {**presence[m["id"]], **presence_info} if presence_info else None))
+        write_json(
+            profiles_dir / f"{m['id']}.json",
+            build_profile(
+                m,
+                meps,
+                stats,
+                votes,
+                day,
+                votes_by_id,
+                own,
+                topic_labels,
+                bench,
+                {**activity[m["id"]], **activity_info} if activity_info else None,
+                {**presence[m["id"]], **presence_info} if presence_info else None,
+            ),
+        )
     for m in meps:
         write_json(profiles_dir / f"{m['id']}_votes.json", mep_votes(m, votes), compact=True)
     if "votes_analysis" in stats:
         write_json(data_dir / "decisive.json", build_decisive(stats, votes_by_id, by_id))
         write_json(data_dir / "splits.json", build_splits(stats, votes_by_id, by_id))
-        write_json(data_dir / "category_stats.json", {**category_stats(
-            votes, by_id, {int(k) for k in build_vote_roles(own)} if own else None), "sources": stats["sources"]})
+        write_json(
+            data_dir / "category_stats.json",
+            {**category_stats(votes, by_id, {int(k) for k in build_vote_roles(own)} if own else None), "sources": stats["sources"]},
+        )
         write_json(data_dir / "categories.json", {k: {"label": n, "icon": icon_inner(k)} for k, n, _ in CATEGORIES})
         write_json(data_dir / "session.json", build_session(stats, votes, votes_by_id, by_id))
         gw_path, groups_path = data_dir / "group_web.json", data_dir / "groups.json"
         if groups_path.exists():
-            eu_index, eu_pages = build_eu_groups(votes, votes_by_id, meps, stats, json.loads(groups_path.read_text(encoding="utf-8")),
-                                                 json.loads(gw_path.read_text(encoding="utf-8")) if gw_path.exists() else None, day)
+            eu_index, eu_pages = build_eu_groups(
+                votes,
+                votes_by_id,
+                meps,
+                stats,
+                json.loads(groups_path.read_text(encoding="utf-8")),
+                json.loads(gw_path.read_text(encoding="utf-8")) if gw_path.exists() else None,
+                day,
+            )
             write_json(data_dir / "eugroups" / "index.json", eu_index)
             for code, page in eu_pages.items():
                 write_json(data_dir / "eugroups" / f"{code}.json", page)
@@ -589,41 +795,69 @@ def run(data_dir: Path, day: str) -> dict:
     search = build_search(votes, by_id, topic_labels, index.get("oeil_subjects"))
     lines = [json.dumps(r, ensure_ascii=False, separators=(",", ":")) for r in search["rows"]]
     head = json.dumps({k: v for k, v in search.items() if k != "rows"}, ensure_ascii=False, separators=(",", ":"))
-    (data_dir / "votes" / "search.json").write_text(head[:-1] + ',"rows":[\n' + ",\n".join(lines) + "\n]}\n",
-                                                    encoding="utf-8")
+    (data_dir / "votes" / "search.json").write_text(head[:-1] + ',"rows":[\n' + ",\n".join(lines) + "\n]}\n", encoding="utf-8")
     # Témata (kategorie) všech hlasování pro detail vote.html: stejná funkce jako čip v seznamu (categories_for), jen neprázdné.
-    write_json(data_dir / "vote_cats.json", {"note": "Klíče kategorií hlasování (scripts/categories.py), první = hlavní.",
-                                             "votes": {str(v["id"]): c for v in votes if (c := categories_for(v))}}, compact=True)
+    write_json(
+        data_dir / "vote_cats.json",
+        {
+            "note": "Klíče kategorií hlasování (scripts/categories.py), první = hlavní.",
+            "votes": {str(v["id"]): c for v in votes if (c := categories_for(v))},
+        },
+        compact=True,
+    )
     # Český název procedury pro detail hlasování v prohlížeči (vote.html čte surová data hlasování).
-    write_json(data_dir / "titles_cs.json", {
-        "note": "Oficiální české názvy procedur z EP Open Data API (fetch_proposals.py), jen procedury, o kterých se hlasovalo.",
-        "titles": dict(sorted({ref: v["title_cs"] for v in votes if v.get("title_cs")
-                               for ref in [(v.get("procedure") or {}).get("reference")] if ref}.items()))}, compact=True)
+    write_json(
+        data_dir / "titles_cs.json",
+        {
+            "note": "Oficiální české názvy procedur z EP Open Data API (fetch_proposals.py), jen procedury, o kterých se hlasovalo.",
+            "titles": dict(
+                sorted(
+                    {
+                        ref: v["title_cs"]
+                        for v in votes
+                        if v.get("title_cs")
+                        for ref in [(v.get("procedure") or {}).get("reference")]
+                        if ref
+                    }.items()
+                )
+            ),
+        },
+        compact=True,
+    )
     agenda_path = data_dir / "agenda.json"
-    write_json(data_dir / "freshness.json", build_freshness(
-        stats["sources"].get("votes", {}).get("release"),
-        json.loads(agenda_path.read_text(encoding="utf-8")) if agenda_path.exists() else None))
+    write_json(
+        data_dir / "freshness.json",
+        build_freshness(
+            stats["sources"].get("votes", {}).get("release"),
+            json.loads(agenda_path.read_text(encoding="utf-8")) if agenda_path.exists() else None,
+        ),
+    )
     return {"profiles": len(meps), "votes": len(votes)}
 
 
 def main(argv=None) -> int:
     import datetime as dt
+
     root = Path(__file__).resolve().parent.parent
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--data-dir", type=Path, default=root / "data")
-    p.add_argument("--today", default=dt.datetime.now(dt.timezone.utc).date().isoformat(),
-                   help="den, ke kterému se určí aktuální frakce a strana")
+    p.add_argument(
+        "--today", default=dt.datetime.now(dt.timezone.utc).date().isoformat(), help="den, ke kterému se určí aktuální frakce a strana"
+    )
     args = p.parse_args(argv)
     try:
         res = run(args.data_dir, args.today)
         # Úvodní stránka (data/home.json): pět nejnovějších závěrečných hlasování a čísla pro pruh faktů.
         from build_home import build as build_home
+
         home = build_home(args.data_dir)
         (args.data_dir / "home.json").write_text(json.dumps(home, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
         # Radar „Co se chystá“ (data/radar.json): program zasedání a legislativní procedury s českou stopou.
         import radar
-        (args.data_dir / "radar.json").write_text(json.dumps(radar.build(args.data_dir, args.today), ensure_ascii=False, indent=1) + "\n",
-                                                  encoding="utf-8")
+
+        (args.data_dir / "radar.json").write_text(
+            json.dumps(radar.build(args.data_dir, args.today), ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
+        )
     except FormatError as e:
         print(f"CHYBA FORMÁTU: {e}", file=sys.stderr)
         return 2

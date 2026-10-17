@@ -11,8 +11,7 @@ import re
 # Celé fráze (pořadí je důležité: delší dřív).
 PHRASES = [
     (r"\(correspond à l'article (\d+) dans l'amendement (\d+)\)", r"(odpovídá článku \1 v PN \2)"),
-    (r"Demande de renvoi \(article (\d+), paragraphe (\d+), du règlement\)",
-     r"žádost o vrácení (čl. \1 odst. \2 jednacího řádu)"),
+    (r"Demande de renvoi \(article (\d+), paragraphe (\d+), du règlement\)", r"žádost o vrácení (čl. \1 odst. \2 jednacího řádu)"),
     (r"Abrogation de la ", "zrušení "),
     (r"Proposition de résolution de remplacement", "alternativní návrh usnesení"),
     (r"Proposition de résolution commune", "společný návrh usnesení"),
@@ -85,10 +84,13 @@ PLACES = [
 # Části dělených hlasování: „§ 7/2“ -> „odst. 7, 2. část“; „Am 4/1“ -> „PN 4, 1. část“.
 SPLIT = re.compile(r"(úvodní část|odst\. \d+|bod odůvodnění \w+|PN \d+|písm\. \w+|bod \d+)/(\d+)")
 AMEND = re.compile(r"\bAm (\d+)")
-FRENCH = re.compile(r"\b(le|la|les|du|des|de|et|sur|après|avant|considérant|amendements?|proposition|projet|vote|demande|"
-                    r"règlement|directive|annexe|article|alinéa|paragraphe|points?|tiret|bis|groupe|décharge|"
-                    r"recommandation|ligne|directrice|partie|introductive|deuxième|premier|sous|commission|conseil|"
-                    r"ensemble|texte|résolution|concernant|correspond|rejet|accord|dans|par|pour|aux?)\b", re.I)
+FRENCH = re.compile(
+    r"\b(le|la|les|du|des|de|et|sur|après|avant|considérant|amendements?|proposition|projet|vote|demande|"
+    r"règlement|directive|annexe|article|alinéa|paragraphe|points?|tiret|bis|groupe|décharge|"
+    r"recommandation|ligne|directrice|partie|introductive|deuxième|premier|sous|commission|conseil|"
+    r"ensemble|texte|résolution|concernant|correspond|rejet|accord|dans|par|pour|aux?)\b",
+    re.I,
+)
 
 
 def translate(description: str | None) -> str | None:
