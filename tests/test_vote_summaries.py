@@ -75,3 +75,55 @@ def test_missing_lists_home_votes_without_summary():
     out = vs.run(votes, {}, Fake("MOCK Usnesení Parlamentu k situaci v Gruzii."), "d")
     assert vs.missing(votes, out) == []
     assert [v["id"] for v in vs.missing(votes + [mock_vote(3, date="2026-10-09")], out)] == [3]
+
+
+# --- B1: shrnutí z přijatého textu (adopted_texts.py) --------------------------------------------------------
+
+
+def adopted_vote(i=1):
+    return {**mock_vote(i), "texts_adopted_reference": "P10_TA(2026)0342"}
+
+
+def test_summary_from_adopted_text_records_source():
+    fake = Fake("Parlament vyzývá Komisi k vypracování strategie.")
+    texts = {"TA-10-2026-0342": "MOCK Evropský parlament vyzývá Komisi, aby vypracovala strategii."}
+    out = vs.run([adopted_vote()], {}, fake, "2026-10-17", text_for=texts.get)
+    item = out["items"]["1"]
+    assert item["source"] == "adopted_text" and item["source_url"].endswith("TA-10-2026-0342_cs.pdf")
+    assert "vypracovala strategii" in vs.vote_input(adopted_vote(), texts["TA-10-2026-0342"])
+
+
+def test_missing_text_falls_back_to_title():
+    fake = Fake("Usnesení Parlamentu k situaci v Gruzii.")
+    out = vs.run([adopted_vote()], {}, fake, "2026-10-17", text_for=lambda ta: None)
+    assert out["items"]["1"]["source"] == "title" and out["items"]["1"]["source_url"] is None
+
+
+def test_text_appearing_later_regenerates_summary():
+    fake = Fake("Usnesení Parlamentu k situaci v Gruzii.")
+    first = vs.run([adopted_vote()], {}, fake, "2026-10-17", text_for=lambda ta: None)
+    fake.text = "Parlament vyzývá k propuštění vězňů."
+    second = vs.run([adopted_vote()], first, fake, "2026-10-18", text_for=lambda ta: "MOCK Parlament vyzývá k propuštění vězňů.")
+    assert fake.calls == 2 and second["items"]["1"]["source"] == "adopted_text"
+    vs.run([adopted_vote()], second, fake, "2026-10-19", text_for=lambda ta: "MOCK Parlament vyzývá k propuštění vězňů.")
+    assert fake.calls == 2  # stejný vstup = z cache
+
+
+def test_number_outside_text_is_rejected():
+    fake = Fake("Parlament chce 40 nových míst.")
+    out = vs.run([adopted_vote()], {}, fake, "2026-10-17", text_for=lambda ta: "MOCK Parlament chce nová místa.")
+    assert "1" not in out["items"]
+    fake.text = "Parlament chce 40 nových míst."
+    out = vs.run([adopted_vote()], {}, fake, "2026-10-17", text_for=lambda ta: "MOCK Parlament chce 40 nových míst.")
+    assert out["items"]["1"]["shrnuti"] == "Parlament chce 40 nových míst."
+
+
+def test_network_error_keeps_old_summary():
+    fake = Fake("Usnesení Parlamentu k situaci v Gruzii.")
+    first = vs.run([adopted_vote()], {}, fake, "2026-10-17", text_for=lambda ta: None)
+
+    def boom(ta):
+        raise OSError("MOCK výpadek")
+
+    second = vs.run([adopted_vote()], first, fake, "2026-10-18", text_for=boom, log=lambda m: None)
+    assert second["items"]["1"] == first["items"]["1"] and fake.calls == 1

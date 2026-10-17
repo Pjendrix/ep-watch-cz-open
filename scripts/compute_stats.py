@@ -686,6 +686,10 @@ def load_votes(votes_dir: Path) -> tuple[dict, list[dict]]:
         require(data, ["votes"], f"votes/{m['month']}.json")
         votes.extend(data["votes"])
     apply_titles(votes, procedure_titles(votes_dir.parent))
+    # přijatý text podle EP Open Data (adopted_texts.py) má přednost před polem z HowTheyVote
+    from adopted_texts import apply as apply_adopted
+
+    apply_adopted(votes, votes_dir.parent)
     return index, votes
 
 

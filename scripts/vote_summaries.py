@@ -1,8 +1,10 @@
 """Krátké AI shrnutí hlasování na úvodní stránce (Claude Haiku), data/vote_summaries.json.
 
-Karta „Poslední hlasování“ na úvodu ukazuje pod nadpisem 1–2 věty, o čem se hlasovalo. Vstup jsou jen údaje ze zdrojů
-(úřední český a anglický název, druh procedury, popis hlasování, témata EuroVoc/OEIL a země z HowTheyVote). Stejné
-pojistky jako u kvízu (quiz_summaries.py, CLAUDE.md: AI jen shrnuje a překládá, čísla počítá kód):
+Karta „Poslední hlasování“ na úvodu ukazuje pod nadpisem 1–2 věty, co přijatý text říká nebo mění. Vstup jsou jen údaje
+ze zdrojů: úřední název, druh procedury, popis hlasování a témata z HowTheyVote a, když existuje, úryvek oficiálního
+českého přijatého textu z EP Open Data (adopted_texts.py; bez citací „s ohledem na“, nejvýš ≈ 8 000 tokenů, oříznuto
+kódem). Text se do repa neukládá, v cache je jen shrnutí, otisk vstupu a odkaz na zdroj. Když text přibude později, otisk
+se změní a shrnutí se přegeneruje. Stejné pojistky jako u kvízu (quiz_summaries.py, CLAUDE.md: AI jen shrnuje a překládá, čísla počítá kód):
   - číslo, které není ve vstupu, shrnutí zahodí (has_foreign_numbers),
   - výsledek, počty hlasů ani hodnocení se do shrnutí nepíšou (pokyn v PROMPT),
   - bez ANTHROPIC_API_KEY volá lokální Claude Code (`claude -p`); bez obojího nic nevolá a karta ukáže jen nadpis.
@@ -20,24 +22,28 @@ import datetime as dt
 import hashlib
 import json
 import os
+import re
 import shutil
 import sys
 from pathlib import Path
 
+from adopted_texts import fetch_text, ta_url
 from build_home import latest_final
 from compute_stats import FormatError, load_votes, require
 from quiz_summaries import MODEL, NUM_RE, ApiBackend, CliBackend
 from vote_kinds import KIND_LABELS, kind_of
 
-PROMPT_VERSION = 1
+PROMPT_VERSION = 2
 N_VOTES = 10  # pět na úvodu + rezerva, aby po novém zasedání nebyla karta bez shrnutí
 PROMPT = """Jsi editor českého nezávislého webu o hlasování europoslanců. Na úvodní stránce je karta posledního hlasování
-s úředním názvem. Napiš pod něj "shrnuti": jednu až dvě krátké věty (nejvýš 180 znaků), o čem se hlasovalo, srozumitelně pro laika.
+s úředním názvem. Napiš pod něj "shrnuti": jednu až dvě krátké věty (nejvýš 180 znaků) srozumitelné pro laika.
 
 Pravidla:
-- Vycházej jen z údajů v zadání. Nic nedomýšlej: obsah textu, který v zadání není, nepopisuj. Když údaje říkají jen téma,
-  napiš jen, čeho se text týká (např. „Usnesení Parlamentu k situaci politických vězňů v Ázerbájdžánu.“) a víc nepiš.
-- Neopakuj doslova nadpis; přidej druh textu (usnesení, zákon, rozpočet…) a koho nebo čeho se týká.
+- Když zadání obsahuje přijatý text, popiš, co text říká nebo co mění: hlavní požadavek, závěr nebo změnu. Jen podle
+  dodaného textu, nic nedomýšlej.
+- Když přijatý text v zadání není, napiš jen, čeho se text týká (např. „Usnesení Parlamentu k situaci politických vězňů
+  v Ázerbájdžánu.“), a víc nepiš.
+- Neopakuj doslova nadpis; uveď druh textu (usnesení, zákon, rozpočet…).
 - Piš neutrálně: žádné hodnocení, žádné „kontroverzní“, „důležitý“, „sporný“, žádné argumenty pro ani proti.
 - Nepiš, jak hlasování dopadlo, kdo jak hlasoval, ani žádné počty hlasů.
 - Nepoužívej čísla, která nejsou v zadání.
@@ -62,8 +68,8 @@ PROCESS_TYPE = {
 }
 
 
-def vote_input(v: dict) -> str:
-    """Zadání pro model: jen údaje ze zdrojů (bez výsledku a počtů hlasů)."""
+def vote_input(v: dict, text: str | None = None) -> str:
+    """Zadání pro model: jen údaje ze zdrojů (bez výsledku a počtů hlasů); text = úryvek přijatého textu, když je."""
     proc = v.get("procedure") or {}
     lines = []
     if v.get("title_cs"):
@@ -83,6 +89,8 @@ def vote_input(v: dict) -> str:
         lines.append("Klíčová slova EuroVoc: " + ", ".join(x["label"] for x in t["eurovoc"]))
     if t.get("geo"):
         lines.append("Země: " + ", ".join(x["label"] for x in t["geo"]))
+    if text:
+        lines.append(f"Přijatý text (oficiální české znění, úryvek):\n{text}")
     return "\n".join(lines)
 
 
@@ -103,24 +111,46 @@ def summarize(backend, source: str) -> str | None:
     return text if valid(text, source) else None
 
 
-def run(votes: list[dict], cache: dict, backend, today: str, log=print) -> dict:
-    """Shrnutí pro n nejnovějších závěrečných hlasování; starší platná shrnutí z cache zůstávají."""
+def adopted_source(v: dict, text_for) -> tuple[str | None, str | None]:
+    """(úryvek přijatého textu, odkaz na PDF) podle texts_adopted_reference, které doplnil adopted_texts.py; jinak (None, None)."""
+    m = re.fullmatch(r"P(\d+)_TA\((\d{4})\)(\d{4})", v.get("texts_adopted_reference") or "")
+    if not m or text_for is None:
+        return None, None
+    ta = f"TA-{m[1]}-{m[2]}-{m[3]}"
+    text = text_for(ta)
+    return (text, ta_url(ta, "pdf")) if text else (None, None)
+
+
+def run(votes: list[dict], cache: dict, backend, today: str, log=print, text_for=None) -> dict:
+    """Shrnutí pro n nejnovějších závěrečných hlasování; starší platná shrnutí z cache zůstávají.
+    text_for(TA) vrací úryvek přijatého textu (nebo None); bez něj se shrnuje jen z názvu."""
     old = cache.get("items", {}) if cache.get("prompt_version") == PROMPT_VERSION else {}
     items = dict(old)
     for v in latest_final(votes, N_VOTES):
         require(v, ["id", "title"], "hlasování")
-        key, source = str(v["id"]), vote_input(v)
+        try:
+            text, url = adopted_source(v, text_for)
+        except Exception as e:  # noqa: BLE001 – síť nebo formát: uložené shrnutí zůstane, nic se neodhaduje
+            log(f"{v['id']}: přijatý text nejde stáhnout ({e}), shrnutí zůstává beze změny")
+            continue
+        key, source = str(v["id"]), vote_input(v, text)
         fp = fingerprint(source)
         if old.get(key, {}).get("fingerprint") == fp:
             continue
         items.pop(key, None)  # změněný vstup: staré shrnutí už neplatí
         if backend is None:
             continue
-        text = summarize(backend, source)
-        if text is None:
+        summary = summarize(backend, source)
+        if summary is None:
             log(f"{key}: shrnutí zamítnuto (odmítnutí, neplatný výstup nebo číslo mimo zadání), karta ukáže jen nadpis")
             continue
-        items[key] = {"shrnuti": text, "fingerprint": fp, "generated": today}
+        items[key] = {
+            "shrnuti": summary,
+            "fingerprint": fp,
+            "generated": today,
+            "source": "adopted_text" if url else "title",
+            "source_url": url,
+        }
     return {
         "note": "Krátká shrnutí posledních závěrečných hlasování od Claude Haiku (scripts/vote_summaries.py). "
         "Čísla ani výsledky hlasování neobsahují.",
@@ -131,10 +161,23 @@ def run(votes: list[dict], cache: dict, backend, today: str, log=print) -> dict:
     }
 
 
-def missing(votes: list[dict], cache: dict, n: int = 5) -> list[dict]:
+def missing(votes: list[dict], cache: dict, n: int = 5, text_for=None) -> list[dict]:
     """Hlasování na úvodu (n nejnovějších závěrečných) bez platného shrnutí."""
     items = cache.get("items", {}) if cache.get("prompt_version") == PROMPT_VERSION else {}
-    return [v for v in latest_final(votes, n) if items.get(str(v["id"]), {}).get("fingerprint") != fingerprint(vote_input(v))]
+    out = []
+    for v in latest_final(votes, n):
+        try:
+            text = adopted_source(v, text_for)[0]
+        except Exception:  # noqa: BLE001 – bez sítě se nedá říct, jestli shrnutí odpovídá textu; nehlásit planě
+            continue
+        if items.get(str(v["id"]), {}).get("fingerprint") != fingerprint(vote_input(v, text)):
+            out.append(v)
+    return out
+
+
+def text_getter(root: Path):
+    """Úryvky přijatých textů z EP Open Data s cache v .cache/adopted/ (mimo git). 404 = text zatím není (None)."""
+    return lambda ta: fetch_text(ta, root / ".cache" / "adopted")
 
 
 def main(argv=None) -> int:
@@ -147,7 +190,7 @@ def main(argv=None) -> int:
     out_path = args.data_dir / "vote_summaries.json"
     if args.check:
         cache = json.loads(out_path.read_text(encoding="utf-8")) if out_path.exists() else {}
-        miss = missing(load_votes(args.data_dir / "votes")[1], cache)
+        miss = missing(load_votes(args.data_dir / "votes")[1], cache, text_for=text_getter(root))
         lines = "\n".join(f"- {v.get('title_cs') or v['title']} ({v['date']})" for v in miss)
         print(f"missing_votes={len(miss)}\nlist_votes<<EOF_LIST\n{lines}\nEOF_LIST")
         return 0
@@ -165,7 +208,7 @@ def main(argv=None) -> int:
     cache = json.loads(out_path.read_text(encoding="utf-8")) if out_path.exists() else {}
     try:
         _, votes = load_votes(args.data_dir / "votes")
-        out = run(votes, cache, backend, dt.date.today().isoformat(), log=lambda m: print(m, file=sys.stderr))
+        out = run(votes, cache, backend, dt.date.today().isoformat(), log=lambda m: print(m, file=sys.stderr), text_for=text_getter(root))
     except FormatError as e:
         print(f"CHYBA FORMÁTU: {e}", file=sys.stderr)
         return 2
