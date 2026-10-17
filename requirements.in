@@ -4,3 +4,4 @@ pandas>=2.2
 requests>=2.31
 pytest>=8
 Pillow>=10
+anthropic>=1.0

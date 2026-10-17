@@ -6,46 +6,58 @@ import quiz  # noqa: E402
 from test_build_web import mep, vote  # noqa: E402
 
 
-def law(vid, date, ref, positions, ptype="COD", kind="final", result="ADOPTED"):
+def law(vid, date, ref, positions, ptype="COD", kind="final", result="ADOPTED", topic="3.70.03"):
     v = vote(vid, date, positions)
-    v.update(vote_kind=kind, result=result, title_cs=f"MOCK {ref}", procedure={"reference": ref, "type": ptype, "title": "MOCK"})
+    v.update(vote_kind=kind, result=result, title_cs=f"MOCK {ref}", procedure={"reference": ref, "type": ptype, "title": "MOCK"},
+             topics={"oeil": [{"code": topic}]})
     return v
 
 
-MEPS = {m["id"]: m for m in (mep(1), mep(2), mep(3), mep(4))}
+def amendments(ref, n, start=1000):
+    """n dílčích hlasování k proceduře (zvyšují počet jmenovitých hlasování)."""
+    return [law(start + i, "2025-01-01", ref, [(1, "FOR")], kind="amendment") for i in range(n)]
 
 
-def test_rule_picks_split_final_laws_one_per_procedure():
+MEPS = {i: mep(i) for i in range(1, 8)}
+SPLIT = [(1, "FOR"), (2, "FOR"), (3, "FOR"), (4, "AGAINST"), (5, "AGAINST"), (6, "AGAINST")]  # 3 : 3, ne skoro jednomyslné
+
+
+def test_rule_filters_and_orders_by_roll_calls():
     votes = [
-        law(1, "2025-03-01", "2025/0001(COD)", [(1, "FOR"), (2, "AGAINST")]),
-        law(2, "2025-04-01", "2025/0001(COD)", [(1, "FOR"), (2, "AGAINST"), (3, "FOR")]),   # novější ze stejné procedury
-        law(3, "2025-04-02", "2025/0002(COD)", [(1, "FOR"), (2, "FOR")]),                   # Češi nerozdělení
-        law(4, "2025-04-03", "2025/0003(INI)", [(1, "FOR"), (2, "AGAINST")], ptype="INI"),  # není zákon
-        law(5, "2025-04-04", "2025/0004(COD)", [(1, "FOR"), (2, "AGAINST")], kind="amendment"),  # není závěrečné
-        law(6, "2024-01-01", "2023/0005(COD)", [(1, "FOR"), (2, "AGAINST")]),               # starší než 12 měsíců
+        law(1, "2025-03-01", "2025/0001(COD)", SPLIT),
+        law(2, "2025-04-01", "2025/0002(COD)", SPLIT), *amendments("2025/0002(COD)", 5),
+        law(3, "2025-04-02", "2025/0003(COD)", [(1, "FOR"), (2, "FOR")]),           # Češi jednotní
+        law(4, "2025-04-03", "2025/0004(INI)", SPLIT, ptype="INI"),                 # není zákon
+        law(5, "2024-09-01", "2024/0005(COD)", SPLIT),                             # celé období: počítá se
     ]
     q = quiz.build_quiz(votes, MEPS)
-    assert [x["id"] for x in q["questions"]] == [2]
-    assert q["questions"][0]["positions"] == {"1": "F", "2": "A", "3": "F"}
-    assert q["to"] == "2025-04-04" and q["rule"] == quiz.QUIZ_RULE
+    assert q["long"] == [2, 1, 5]  # nejvíc hlasování, pak novější
+    assert {x["id"]: x["roll_calls"] for x in q["questions"]}[2] == 6
 
 
-def test_most_split_first_and_size_limit(monkeypatch):
-    monkeypatch.setattr(quiz, "QUIZ_SIZE", 2)
-    votes = [
-        law(1, "2025-03-01", "2025/0001(COD)", [(1, "FOR"), (2, "FOR"), (3, "FOR"), (4, "AGAINST")]),        # 1:3
-        law(2, "2025-03-02", "2025/0002(COD)", [(1, "FOR"), (2, "AGAINST")]),                               # 1:1
-        law(3, "2025-03-03", "2025/0003(COD)", [(1, "FOR"), (2, "FOR"), (3, "AGAINST"), (4, "AGAINST")]),   # 2:2
-    ]
+def test_newest_split_final_vote_per_procedure():
+    votes = [law(1, "2025-03-01", "2025/0001(COD)", SPLIT), law(2, "2025-04-01", "2025/0001(COD)", [(1, "FOR"), (2, "FOR")])]
+    assert quiz.build_quiz(votes, MEPS)["long"] == [1]  # novější je jednotné, bere se to rozdělené
+
+
+def test_topic_cap_and_lopsided_half(monkeypatch):
+    monkeypatch.setattr(quiz, "QUIZ_SHORT", 4)
+    monkeypatch.setattr(quiz, "categories_for", lambda v: [v["topics"]["oeil"][0]["code"]])
+    lop = [(1, "FOR"), (2, "FOR"), (3, "FOR"), (4, "AGAINST")]  # menšina 1 hlas
+    votes = [law(i, f"2025-0{i}-01", f"2025/000{i}(COD)", lop, topic=f"{i}.10") for i in range(1, 5)]
+    votes += [law(9, "2025-09-01", "2025/0009(COD)", SPLIT, topic="1.10")]
     q = quiz.build_quiz(votes, MEPS)
-    assert [x["id"] for x in q["questions"]] == [3, 2]  # dvě nejrozdělenější, zobrazené od nejnovějšího
+    lopsided_short = [i for i in q["short"] if i != 9]
+    assert len(lopsided_short) == 2 and 9 in q["short"]  # nejvýš polovina skoro jednomyslných
+    same_topic = [law(i, "2025-01-01", f"2025/01{i:02d}(COD)", SPLIT, topic="3.70.03") for i in range(5)]
+    assert len(quiz.build_quiz(same_topic, MEPS)["long"]) == quiz.MAX_PER_TOPIC
 
 
 def test_only_meps_in_mandate_have_positions():
     meps = {1: mep(1), 2: mep(2, end="2025-01-01")}
-    q = quiz.build_quiz([law(1, "2025-03-01", "2025/0001(COD)", [(1, "FOR"), (2, "AGAINST")])], meps)
-    assert q["questions"] == []  # bez poslance 2 už Češi rozdělení nejsou
+    assert quiz.build_quiz([law(1, "2025-03-01", "2025/0001(COD)", [(1, "FOR"), (2, "AGAINST")])], meps)["questions"] == []
 
 
 def test_empty():
-    assert quiz.build_quiz([], MEPS)["questions"] == []
+    q = quiz.build_quiz([], MEPS)
+    assert q["questions"] == [] and q["short"] == [] and q["long"] == []
