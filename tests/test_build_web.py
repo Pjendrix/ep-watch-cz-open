@@ -48,6 +48,11 @@ def metrics():
         "attendance_main": [1, 1],
         "group_loyalty": [1, 1],
         "cz_agreement": [0, 1],
+        "outcome": [1, 1],
+        "outcome_main": [1, 1],
+        "outcome_close": [0, 0],
+        "group_outcome": [1, 2],
+        "group_outcome_main": [1, 1],
         "positions": {"FOR": 1, "AGAINST": 0, "ABSTENTION": 0, "DID_NOT_VOTE": 1},
     }
 
