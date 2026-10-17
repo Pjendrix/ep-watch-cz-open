@@ -30,6 +30,7 @@ from delegations import compute_delegations
 from vote_kinds import FINAL_KINDS, classify
 
 BASE_URL = "https://github.com/HowTheyVote/data/releases/latest/download"
+TAG_URL = "https://github.com/HowTheyVote/data/releases/download/{tag}"
 HTV_VOTE_URL = "https://howtheyvote.eu/votes/{id}"
 TERM_START = "2024-07-16"
 COUNTRY = "CZE"
@@ -101,12 +102,19 @@ def release_is_new(latest: str | None, stored: str | None) -> bool:
     return bool(latest) and latest != stored
 
 
+def table_url(table: str, tag: str | None) -> str:
+    """Všechny tabulky ze stejného releasu: podle zjištěného tagu, latest jen když tag neznáme (jinak by vyšel mix dvou exportů)."""
+    return f"{TAG_URL.format(tag=tag) if tag else BASE_URL}/{table}.csv.gz"
+
+
 def download(dest: Path) -> str | None:
     dest.mkdir(parents=True, exist_ok=True)
     with requests.Session() as s:
         tag = resolve_release_tag(s)
+        if not tag:
+            print("varování: tag releasu se nepodařilo zjistit, stahuji latest/download", file=sys.stderr)
         for table in TABLES:
-            url = f"{BASE_URL}/{table}.csv.gz"
+            url = table_url(table, tag)
             print(f"stahuji {url}", file=sys.stderr)
             with s.get(url, stream=True, timeout=120) as r:
                 r.raise_for_status()
@@ -200,19 +208,19 @@ def load_topics(csv_dir: Path, vote_ids: set[int]) -> dict[int, dict[str, list]]
 
     def add(links: pd.DataFrame, key_col: str, kind: str, labels: dict | None) -> None:
         links = links[links["vote_id"].astype(int).isin(vote_ids)]
-        for vid, code in zip(links["vote_id"].astype(int), links[key_col]):
+        for vid, code in zip(links["vote_id"].astype(int), links[key_col], strict=False):
             item = code if labels is None else {"code": code, "label": labels.get(code)}
             topics.setdefault(vid, {}).setdefault(kind, []).append(item)
 
     ev = read_table(csv_dir, "eurovoc_concepts")
     add(read_table(csv_dir, "eurovoc_concept_votes"), "eurovoc_concept_id", "eurovoc",
-        dict(zip(ev["id"], ev["label"])))
+        dict(zip(ev["id"], ev["label"], strict=False)))
     oe = read_table(csv_dir, "oeil_subjects")
     add(read_table(csv_dir, "oeil_subject_votes"), "oeil_subject_code", "oeil",
-        dict(zip(oe["code"], oe["label"])))
+        dict(zip(oe["code"], oe["label"], strict=False)))
     geo = read_table(csv_dir, "geo_areas")
     add(read_table(csv_dir, "geo_area_votes"), "geo_area_code", "geo",
-        dict(zip(geo["code"], geo["label"])))
+        dict(zip(geo["code"], geo["label"], strict=False)))
     add(read_table(csv_dir, "responsible_committee_votes"), "committee_code", "committees", None)
 
     for t in topics.values():
@@ -266,7 +274,7 @@ def build_months(votes: pd.DataFrame, mv: pd.DataFrame, topics: dict, release: s
             **dict(zip(("vote_kind", "inverted"), classify({
                 "is_main": bool(row.is_main), "description": _clean(row.description),
                 "amendment_subject": _clean(row.amendment_subject), "amendment_number": _clean(row.amendment_number),
-            }))),
+            }), strict=False)),
             "description_cs": translate(_clean(row.description)),
             "procedure": {
                 "reference": _clean(row.procedure_reference),
@@ -330,7 +338,7 @@ def write_index(months: dict[str, dict], groups: pd.DataFrame, out_dir: Path, re
              "official_label": _clean(r.official_label)}
             for r in groups.sort_values("code").itertuples(index=False) if r.code in used
         ],
-        "oeil_subjects": {} if oeil is None else dict(sorted(zip(oeil["code"], oeil["label"]))),
+        "oeil_subjects": {} if oeil is None else dict(sorted(zip(oeil["code"], oeil["label"], strict=False))),
     }
     (out_dir / "index.json").write_text(json.dumps(index, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
 
@@ -371,9 +379,9 @@ def run(csv_dir: Path, out_dir: Path, release: str | None, since: str = TERM_STA
     final_ids = {v["id"] for m in months.values() for v in m["votes"] if v["vote_kind"] in FINAL_KINDS}
     rows = pd.concat(all_rows, ignore_index=True) if all_rows else pd.DataFrame(columns=["vote_id", "member_id", "position", "group_code"])
     bench = compute_benchmarks(zip(rows["vote_id"].astype(int), rows["member_id"].astype(int), rows["position"],
-                                   [g if isinstance(g, str) and g else None for g in rows["group_code"]]),
+                                   [g if isinstance(g, str) and g else None for g in rows["group_code"]], strict=False),
                                group_counts, final_ids, windows=mandate_windows(out_dir.parent / "meps.json", since),
-                               vote_dates={int(i): d[:10] for i, d in zip(votes["id"], votes["timestamp"])})
+                               vote_dates={int(i): d[:10] for i, d in zip(votes["id"], votes["timestamp"], strict=False)})
     bench["source"] = {"release": release}
     (benchmarks_path or out_dir.parent / "benchmarks.json").write_text(
         json.dumps(bench, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")

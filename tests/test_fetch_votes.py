@@ -119,6 +119,11 @@ def test_resolve_release_tag():
     assert fv.resolve_release_tag(FakeSession(FakeResponse(200, None))) is None
 
 
+def test_table_url_pins_resolved_tag():
+    assert fv.table_url("votes", "2026-10-10") == "https://github.com/HowTheyVote/data/releases/download/2026-10-10/votes.csv.gz"
+    assert fv.table_url("votes", None) == f"{fv.BASE_URL}/votes.csv.gz"
+
+
 def test_group_counts_cover_all_countries(csv_dir, tmp_path):
     months = fv.run(csv_dir, tmp_path / "out", release=None)
     v2 = months["2024-07"]["votes"][0]

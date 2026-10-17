@@ -283,14 +283,16 @@ class Fetcher:
         active = {i for i in ids if is_active(self.items.get(f"proc-{i}"))}
         # Procedury, o kterých se hlasovalo, potřebují český název (web ho ukazuje místo anglického z HowTheyVote).
         no_title = {i for i in self.voted if not seen.get(i, {}).get("title_cs")}
-        ids |= no_title
+        # Stránka „Příběh zákona“ (z/) potřebuje u hlasovaných procedur i události a odpovědný výbor.
+        no_events = {i for i in self.voted if "events" not in seen.get(i, {})}
+        ids |= no_title | no_events
         # Nejdřív nestažené, pak rozpracované české bez událostí, pak hlasované bez českého názvu, pak rozpracované
         # české a nakonec nejdéle nestahované (stínoví zpravodajové přibývají v průběhu procedury).
         order = sorted(ids, key=lambda i: (i in seen, not (i in active and "events" not in self.items.get(f"proc-{i}", {})),
-                                           i not in no_title, i not in active, seen.get(i, {}).get("fetched", ""), i))
+                                           i not in no_title, i not in no_events, i not in active, seen.get(i, {}).get("fetched", ""), i))
         for proc_id in order:
             limit = stale_active if proc_id in active else stale
-            if (proc_id in seen and seen[proc_id]["fetched"] > limit and proc_id not in no_title
+            if (proc_id in seen and seen[proc_id]["fetched"] > limit and proc_id not in no_title and proc_id not in no_events
                     and "events" in self.items.get(f"proc-{proc_id}", {"events": 1})):
                 continue
             proc = self.detail("procedures", proc_id)
@@ -303,6 +305,8 @@ class Fetcher:
                 self.items.pop(key, None)
             seen[proc_id] = {"fetched": self.today, "label": proc.get("label"),
                              "title_cs": title_of(proc, "process_title").get("cs")}
+            if proc_id in self.voted:
+                seen[proc_id].update(events=procedure_events(proc), committee=lead_committee(proc))
             self.checkpoint()
 
     def questions(self, years: list[int]) -> None:

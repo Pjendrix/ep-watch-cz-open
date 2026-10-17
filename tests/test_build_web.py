@@ -81,7 +81,7 @@ def data_dir(tmp_path):
 def test_search_rows_and_cz_counts_only_in_mandate(data_dir):
     bw.run(data_dir, "2024-11-01")
     search = json.loads((data_dir / "votes" / "search.json").read_text(encoding="utf-8"))
-    rows = [dict(zip(search["fields"], r)) for r in search["rows"]]
+    rows = [dict(zip(search["fields"], r, strict=False)) for r in search["rows"]]
     assert [r["id"] for r in rows] == [1, 2, 3, 4]
     assert rows[0]["cz"] == [2, 0, 0, 0]
     assert rows[1]["title"] == "MOCK-REF"  # bez názvu -> reference

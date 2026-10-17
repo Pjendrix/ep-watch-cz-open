@@ -164,12 +164,35 @@ def test_voted_procedures_get_czech_title_first(tmp_path):
         "procedures/2023-0436": {"process_id": "2023-0436", "label": "2023/0436(COD)", "process_title": {"cs": "MOCK starší"}},
     }
     state = {"documents": {}, "questions": {}, "procedures": {
-        "2025-0001": {"fetched": "2026-10-13", "label": "2025/0001(COD)", "title_cs": "MOCK nový"}}}
+        "2025-0001": {"fetched": "2026-10-13", "label": "2025/0001(COD)", "title_cs": "MOCK nový", "events": []}}}
     fetcher, client = make_fetcher(routes, state)
     fetcher.voted = {"2023-0436", "2025-0001"}
     fetcher.procedures([2025])
     assert "procedures/2023-0436" in client.calls and "procedures/2025-0001" not in client.calls
     assert state["procedures"]["2023-0436"]["title_cs"] == "MOCK starší"
+
+
+def test_voted_procedures_store_events_and_committee():
+    """U hlasovaných procedur bez událostí ve stavu se stáhnou události a výbor (stránka z/), i když je název známý."""
+    routes = {
+        "procedures": [],
+        "procedures/2023-0436": {"process_id": "2023-0436", "label": "2023/0436(COD)", "process_title": {"cs": "MOCK"},
+                                 "consists_of": [{"activity_date": "2024-03-01", "had_activity_type": "def/ep-activities/PLENARY_VOTE"},
+                                                 {"activity_date": "2023-12-01", "had_activity_type": "def/ep-activities/REFERRAL"}],
+                                 "had_participation": [{"participation_role": "def/ep-roles/COMMITTEE_LEAD",
+                                                        "had_participant_organization": ["org/ENVI"]}]},
+    }
+    state = {"documents": {}, "questions": {}, "procedures": {
+        "2023-0436": {"fetched": "2026-10-13", "label": "2023/0436(COD)", "title_cs": "MOCK"}}}
+    fetcher, client = make_fetcher(routes, state)
+    fetcher.voted = {"2023-0436"}
+    fetcher.procedures([2025])
+    meta = state["procedures"]["2023-0436"]
+    assert meta["events"] == [{"date": "2023-12-01", "type": "REFERRAL"}, {"date": "2024-03-01", "type": "PLENARY_VOTE"}]
+    assert meta["committee"] == "ENVI"
+    client.calls.clear()
+    fetcher.procedures([2025])
+    assert "procedures/2023-0436" not in client.calls  # podruhé už čerstvé
 
 
 def test_voted_procedures_from_votes(tmp_path):

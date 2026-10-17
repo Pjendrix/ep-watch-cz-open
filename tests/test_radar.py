@@ -129,3 +129,4 @@ def test_build_on_real_data_has_valid_shape():
     json.dumps(r)
     for row in r["active"] + r["done"]:
         assert row["cz"] and row["type"] in rd.LEGISLATIVE
+

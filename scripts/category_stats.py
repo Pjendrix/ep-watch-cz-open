@@ -37,7 +37,7 @@ def category_stats(votes: list[dict], meps_by_id: dict, trace_ids: set[int] | No
                 r["final"] += 1
                 if trace_ids is not None:
                     r["final_trace"] = r.get("final_trace", 0) + (v["id"] in trace_ids)
-                r["cz_final"] = [a + b for a, b in zip(r["cz_final"], n)]
+                r["cz_final"] = [a + b for a, b in zip(r["cz_final"], n, strict=False)]
                 if n[0] + n[1] >= 2:
                     r["cz_united_final"][1] += 1
                     r["cz_united_final"][0] += n[0] == 0 or n[1] == 0

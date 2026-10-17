@@ -12,7 +12,7 @@ def vote(i, date, kind="final", n_for=300, n_against=200, result="ADOPTED", proc
     return {"id": i, "date": date, "vote_kind": kind, "is_main": True, "title": f"MOCK {i}", "result": result,
             "counts": {"for": n_for, "against": n_against, "abstention": 0, "did_not_vote": 0},
             "procedure": {"type": proc, "reference": f"MOCK/{i}"},
-            "cz_positions": [{"member_id": m, "position": p, "group_code": "EPP"} for m, p in zip((1, 2, 3), cz)]}
+            "cz_positions": [{"member_id": m, "position": p, "group_code": "EPP"} for m, p in zip((1, 2, 3), cz, strict=False)]}
 
 
 VOTES = [

@@ -26,7 +26,7 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from vote_kinds import KIND_LABELS, is_final, kind_of
+from vote_kinds import is_final, kind_of
 
 POSITIONS = ["FOR", "AGAINST", "ABSTENTION", "DID_NOT_VOTE"]
 VOTED = {"FOR", "AGAINST", "ABSTENTION"}
@@ -151,7 +151,7 @@ def group_majority(group_counts: dict[str, list[int]], group: str | None) -> str
     if group in NO_GROUP or group not in group_counts:
         return None
     row = group_counts[group]
-    return majority(dict(zip(POSITIONS, row)))
+    return majority(dict(zip(POSITIONS, row, strict=False)))
 
 
 def decided(vote: dict) -> bool:

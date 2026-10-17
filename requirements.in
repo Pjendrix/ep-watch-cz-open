@@ -1,0 +1,6 @@
+# Přímé závislosti. Zamčené verze s hashi jsou v requirements.txt:
+#   uv pip compile requirements.in -o requirements.txt --generate-hashes --python-version 3.12
+pandas>=2.2
+requests>=2.31
+pytest>=8
+Pillow>=10
