@@ -7,7 +7,7 @@ Nic se nestahuje ani neodhaduje, jen se spojují soubory, které už existují:
 - data/own_work.json (compute_stats.py): česká stopa u bodů programu (zpravodaj, stínový zpravodaj);
 - data/votes/ (HowTheyVote): poslední závěrečné hlasování procedury (podle čísla procedury) pro odkaz na výsledek.
 
-Pravidla (vypsaná i na webu, o-projektu.html#radar):
+Pravidla (vypsaná i na webu, o-projektu#radar):
 - Stav procedury se určuje z jejích událostí podle pevné tabulky MILESTONES. Pole current_stage z EP API se nepoužívá,
   protože u uzavřených procedur zůstává „první čtení“.
 - „Rozpracované“ = legislativní procedura (COD, CNS, APP) s českou rolí, o které ještě nehlasovalo plénum.
