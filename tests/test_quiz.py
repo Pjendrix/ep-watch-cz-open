@@ -67,3 +67,11 @@ def test_only_meps_in_mandate_have_positions():
 def test_empty():
     q = quiz.build_quiz([], MEPS)
     assert q["questions"] == [] and q["short"] == [] and q["long"] == []
+
+
+def test_groups_at_vote_date():
+    v = law(1, "2025-03-01", "2025/0001(COD)", SPLIT)
+    v["cz_positions"][0]["group_code"] = "ECR"  # přestup: frakce z hlasu, ne ze současného stavu poslance
+    v["cz_positions"][1]["group_code"] = None
+    g = quiz.build_quiz([v], MEPS)["questions"][0]["groups"]
+    assert g["1"] == "ECR" and g["2"] is None and g["3"] == "EPP" and set(g) == {"1", "2", "3", "4", "5", "6"}

@@ -11,8 +11,9 @@ Otázky nevybírá redakce, ale pravidlo (QUIZ_RULE):
      typu 18 : 1; taková hlasování se ale nevyřazují (i to, že proti hlasovali jen dva poslanci, je informace).
 Krátký test má QUIZ_SHORT otázek, dlouhý QUIZ_LONG; oba se vybírají stejným pravidlem.
 
-Shodu počítá prohlížeč (public/moje-shoda.html) z hlasů v tomto souboru; tady se nic nehodnotí ani nepočítá za uživatele.
-Hlasy jsou jen poslanců v mandátu k datu hlasování (F pro, A proti, B zdržel/a se, N nehlasoval/a).
+Shodu počítá prohlížeč (public/kviz.html, public/lib/quiz.js) z hlasů v tomto souboru; tady se nic nehodnotí ani nepočítá za uživatele.
+Hlasy jsou jen poslanců v mandátu k datu hlasování (F pro, A proti, B zdržel/a se, N nehlasoval/a), u každého i frakce
+k datu hlasování (groups).
 
 Výstup: data/quiz.json (build_web.py). Srozumitelné shrnutí otázek doplňuje zvlášť quiz_summaries.py (Claude Haiku).
 """
@@ -102,6 +103,8 @@ def build_quiz(votes: list[dict], meps_by_id: dict) -> dict:
                 "roll_calls": c["roll_calls"],
                 "counts": [cnt["for"], cnt["against"], cnt["abstention"]],
                 "positions": {str(p["member_id"]): LETTER[p["position"]] for p in sorted(c["cz"], key=lambda p: p["member_id"])},
+                # frakce k datu hlasování (HowTheyVote u každého hlasu), kvůli pořadí teček v půlkruhu; chybí-li, null
+                "groups": {str(p["member_id"]): p.get("group_code") or None for p in sorted(c["cz"], key=lambda p: p["member_id"])},
             }
         )
     return {
