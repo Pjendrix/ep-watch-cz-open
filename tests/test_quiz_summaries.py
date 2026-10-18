@@ -113,3 +113,35 @@ def test_check_lists_questions_without_summary():
     text = qs.check_output(quiz(Q, Q2), out)
     assert text.startswith("missing=1\n") and "- MOCK druhý (2025/0001(COD))" in text
     assert qs.check_output(quiz(Q), out).startswith("missing=0\n")
+
+
+def test_resolution_input_says_it_is_not_a_law_and_law_input_unchanged():
+    """Kvíz Evropské frakce: u usnesení vstup uvádí, že nejde o zákon; vstup zákonů (i dnešních otázek) je beze změny."""
+    res = {**Q, "procedure": "2025/2070(INI)", "kind": "usneseni"}
+    text = qs.question_input(res)
+    assert qs.RESOLUTION_NOTE in text and "zpráva z vlastního podnětu" in text
+    assert qs.question_input({**Q, "kind": "zakon"}) == qs.question_input(Q)
+
+
+def test_repo_summaries_still_match_quiz():
+    """Rozšíření o variantu Frakce nezměnilo vstupy otázek „Čeští poslanci“: uložená shrnutí platí dál."""
+    root = Path(__file__).resolve().parent.parent / "data"
+    if not (root / "quiz.json").exists() or not (root / "quiz_summaries.json").exists():
+        import pytest
+
+        pytest.skip("bez dat kvízu (export do veřejného repa)")
+    quiz_ = json.loads((root / "quiz.json").read_text(encoding="utf-8"))
+    cache = json.loads((root / "quiz_summaries.json").read_text(encoding="utf-8"))
+    assert qs.missing(quiz_, cache) == []
+
+
+def test_both_variants_one_summary_per_procedure():
+    """Procedura v obou variantách má jedno shrnutí ze vstupu otázky „Čeští poslanci“; jen ve Frakcích se shrne zvlášť."""
+    shared_g = {**Q, "description": "MOCK jiné hlasování téže procedury", "kind": "zakon"}
+    only_g = {**Q, "id": 2, "procedure": "2025/2070(INI)", "title": "MOCK Krize bydlení", "kind": "usneseni"}
+    client = FakeClient({"nazev": "MOCK Název", "shrnuti": "MOCK Shrnutí."})
+    out = qs.run(quiz(Q), {}, client, "2026-10-18", groups_quiz=quiz(shared_g, only_g))
+    assert set(out["items"]) == {"2025/0524(COD)", "2025/2070(INI)"} and len(client.client.calls) == 2
+    assert out["items"]["2025/0524(COD)"]["fingerprint"] == qs.fingerprint(qs.question_input(Q))
+    assert qs.missing(quiz(Q), out, quiz(shared_g, only_g)) == []  # druhý běh nic nevolá
+    assert "missing=0" in qs.check_output(quiz(Q), out, quiz(shared_g, only_g))

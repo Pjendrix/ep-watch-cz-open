@@ -1,7 +1,7 @@
-"""Srozumitelné shrnutí otázek kvízu „Moje shoda“ (Claude Haiku).
+"""Srozumitelné shrnutí otázek kvízu: varianta „Čeští poslanci“ (data/quiz.json) i „Evropské frakce“ (data/quiz_groups.json).
 
-Úřední název typu „Změna nařízení (EU) 2023/2124…“ laik nepochopí. Pro každou otázku z data/quiz.json proto Claude Haiku
-napíše krátký název a dvě věty, o čem zákon je. Vstup jsou jen údaje, které máme ze zdrojů (úřední český a anglický název,
+Úřední název typu „Změna nařízení (EU) 2023/2124…“ laik nepochopí. Pro každou otázku obou variant proto Claude Haiku
+napíše krátký název a dvě věty, o čem zákon nebo usnesení je (u usnesení vstup uvádí, že nejde o zákon). Vstup jsou jen údaje, které máme ze zdrojů (úřední český a anglický název,
 popis hlasování z HowTheyVote, číslo a druh procedury); pokyny jsou v PROMPT a web je ukazuje celé (ⓘ u kvízu).
 
 Pravidla (CLAUDE.md: AI jen shrnuje a překládá, čísla počítá kód):
@@ -10,6 +10,8 @@ Pravidla (CLAUDE.md: AI jen shrnuje a překládá, čísla počítá kód):
   - bez ANTHROPIC_API_KEY volá lokální Claude Code (`claude -p`, stejný model a zadání); bez obojího nic nevolá
     a web ukáže úřední název.
 Shrnutí se cachují v data/quiz_summaries.json podle čísla procedury a otisku vstupu; znovu se volá jen nová nebo změněná otázka.
+Procedura, která je v obou variantách, má jedno shrnutí ze vstupu otázky „Čeští poslanci“ (jinak by se dva různé vstupy
+téže procedury navzájem přepisovaly a shrnutí by se generovalo pořád znovu).
 
 Použití:
     python scripts/quiz_summaries.py                       # lokálně přes Claude Code (předplatné, bez API klíče)
@@ -53,7 +55,18 @@ SCHEMA = {
     "required": ["nazev", "shrnuti"],
     "additionalProperties": False,
 }
-PROCESS_TYPE = {"COD": "řádný legislativní postup", "CNS": "konzultace (rozhoduje Rada)", "APP": "souhlas Parlamentu"}
+PROCESS_TYPE = {
+    "COD": "řádný legislativní postup",
+    "CNS": "konzultace (rozhoduje Rada)",
+    "APP": "souhlas Parlamentu",
+    "INI": "zpráva z vlastního podnětu",
+    "RSP": "usnesení k aktuálnímu tématu",
+    "BUD": "rozpočtový postup",
+    "BUI": "rozpočtový postup",
+    "DEC": "udělení absolutoria",
+    "NLE": "nelegislativní postup",
+}
+RESOLUTION_NOTE = "Druh: usnesení Evropského parlamentu, není to zákon (vyjadřuje postoj Parlamentu)"
 NUM_RE = re.compile(r"\d+")
 
 
@@ -66,6 +79,8 @@ def question_input(q: dict) -> str:
     if q.get("description"):
         lines.append(f"Popis hlasování: {q['description']}")
     lines.append(f"Procedura: {q['procedure']} ({PROCESS_TYPE.get(ptype, ptype)})")
+    if q.get("kind") == "usneseni":  # jen otázky z quiz_groups.json; vstupy dnešních otázek se nemění
+        lines.append(RESOLUTION_NOTE)
     if q.get("topic") in CAT_LABEL:
         lines.append(f"Téma: {CAT_LABEL[q['topic']]}")
     return "\n".join(lines)
@@ -158,13 +173,26 @@ def summarize(backend, text: str) -> dict | None:
     return {"nazev": data["nazev"].strip(), "shrnuti": data["shrnuti"].strip()} if valid(data, text) else None
 
 
-def run(quiz: dict, cache: dict, client, today: str, log=print) -> dict:
-    """Doplní shrnutí k otázkám kvízu; vrací nový obsah data/quiz_summaries.json (jen pro otázky v kvízu)."""
-    require(quiz, ["questions"], "quiz.json")
+def all_questions(*quizzes: dict | None) -> list[dict]:
+    """Otázky všech variant, z každé procedury jen první (pořadí variant = přednost vstupu)."""
+    seen, out = set(), []
+    for quiz in quizzes:
+        if quiz is None:
+            continue
+        require(quiz, ["questions"], "kvíz")
+        for q in quiz["questions"]:
+            require(q, ["procedure", "title"], "otázka kvízu")
+            if q["procedure"] not in seen:
+                seen.add(q["procedure"])
+                out.append(q)
+    return out
+
+
+def run(quiz: dict, cache: dict, client, today: str, log=print, groups_quiz: dict | None = None) -> dict:
+    """Doplní shrnutí k otázkám obou variant kvízu; vrací nový obsah data/quiz_summaries.json (jen pro otázky v kvízech)."""
     old = cache.get("items", {})
     items: dict[str, dict] = {}
-    for q in quiz["questions"]:
-        require(q, ["procedure", "title"], "quiz.json otázka")
+    for q in all_questions(quiz, groups_quiz):
         text = question_input(q)
         fp = fingerprint(text)
         if old.get(q["procedure"], {}).get("fingerprint") == fp:
@@ -178,7 +206,7 @@ def run(quiz: dict, cache: dict, client, today: str, log=print) -> dict:
             continue
         items[q["procedure"]] = {**summary, "fingerprint": fp, "generated": today}
     return {
-        "note": "Shrnutí otázek kvízu Moje shoda od Claude Haiku (scripts/quiz_summaries.py). Čísla ani výsledky hlasování neobsahují.",
+        "note": "Shrnutí otázek kvízu (Čeští poslanci i Evropské frakce) od Claude Haiku (scripts/quiz_summaries.py). Čísla ani výsledky hlasování neobsahují.",
         "model": MODEL,
         "prompt_version": PROMPT_VERSION,
         "prompt": PROMPT,
@@ -186,15 +214,16 @@ def run(quiz: dict, cache: dict, client, today: str, log=print) -> dict:
     }
 
 
-def missing(quiz: dict, cache: dict) -> list[dict]:
+def missing(quiz: dict, cache: dict, groups_quiz: dict | None = None) -> list[dict]:
     """Otázky kvízu bez platného shrnutí (nové, změněné nebo po změně zadání)."""
     items = cache.get("items", {})
-    return [q for q in quiz.get("questions", []) if items.get(q["procedure"], {}).get("fingerprint") != fingerprint(question_input(q))]
+    qs = all_questions(quiz, groups_quiz)
+    return [q for q in qs if items.get(q["procedure"], {}).get("fingerprint") != fingerprint(question_input(q))]
 
 
-def check_output(quiz: dict, cache: dict) -> str:
+def check_output(quiz: dict, cache: dict, groups_quiz: dict | None = None) -> str:
     """Výstup pro GITHUB_OUTPUT: missing=N a seznam otázek (pro upozornění v issue)."""
-    miss = missing(quiz, cache)
+    miss = missing(quiz, cache, groups_quiz)
     lines = "\n".join(f"- {q['title']} ({q['procedure']})" for q in miss)
     return f"missing={len(miss)}\nlist<<EOF_LIST\n{lines}\nEOF_LIST\n"
 
@@ -212,12 +241,14 @@ def main(argv=None) -> int:
     p.add_argument("--check", action="store_true", help="nic negeneruje, jen vypíše počet otázek bez shrnutí (GITHUB_OUTPUT)")
     args = p.parse_args(argv)
     quiz_path, out_path = args.data_dir / "quiz.json", args.data_dir / "quiz_summaries.json"
+    groups_path = args.data_dir / "quiz_groups.json"
+    groups_quiz = json.loads(groups_path.read_text(encoding="utf-8")) if groups_path.exists() else None
     if not quiz_path.exists():
         print("chybí data/quiz.json, spusť nejdřív build_web.py", file=sys.stderr)
         return 2
     if args.check:
         cache = json.loads(out_path.read_text(encoding="utf-8")) if out_path.exists() else {}
-        print(check_output(json.loads(quiz_path.read_text(encoding="utf-8")), cache), end="")
+        print(check_output(json.loads(quiz_path.read_text(encoding="utf-8")), cache, groups_quiz), end="")
         return 0
     client = None
     use_api = args.backend == "api" or (args.backend == "auto" and os.environ.get("ANTHROPIC_API_KEY"))
@@ -238,15 +269,14 @@ def main(argv=None) -> int:
             client,
             dt.date.today().isoformat(),
             log=lambda m: print(m, file=sys.stderr),
+            groups_quiz=groups_quiz,
         )
     except FormatError as e:
         print(f"CHYBA FORMÁTU: {e}", file=sys.stderr)
         return 2
     out_path.write_text(json.dumps(out, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-    print(
-        f"shrnutí kvízu: {len(out['items'])} z {len(json.loads(quiz_path.read_text(encoding='utf-8'))['questions'])} otázek",
-        file=sys.stderr,
-    )
+    total = len(all_questions(json.loads(quiz_path.read_text(encoding="utf-8")), groups_quiz))
+    print(f"shrnutí kvízu: {len(out['items'])} z {total} procedur (obě varianty)", file=sys.stderr)
     return 0
 
 

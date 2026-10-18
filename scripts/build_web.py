@@ -35,6 +35,7 @@ from group_stats import build_group_stats
 from categories import CATEGORIES, categories_for, icon_inner
 from key_votes import build_key_votes
 from quiz import build_quiz
+from quiz_groups import build_quiz_groups
 from work_hub import build_work_hub
 from labels_cs import translate
 from overrides import apply_name_overrides
@@ -720,6 +721,7 @@ def run(data_dir: Path, day: str) -> dict:
     key["sources"] = stats["sources"]
     write_json(data_dir / "key_votes.json", key)
     write_json(data_dir / "quiz.json", {**build_quiz(votes, by_id), "sources": stats["sources"]}, compact=True)
+    write_json(data_dir / "quiz_groups.json", {**build_quiz_groups(votes), "sources": stats["sources"]}, compact=True)
     write_json(data_dir / "overview.json", build_overview(meps, stats, day, topic_labels, bench))
     write_json(data_dir / "agreement.json", build_agreement(meps, stats, day), compact=True)
     if own is not None:
