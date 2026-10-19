@@ -243,10 +243,12 @@ def timeline(events: list[dict], process_type: str | None = None) -> dict:
         reached = max(stage_of[e["type"]] for e in marked if e["date"] == day)
     steps = [{"key": MILESTONE_KEYS[stage_of[m["type"]]], **m} for m in axis(events, process_type)]
     if reached is not None and MILESTONE_KEYS[reached] != "closed":
+        # podpis a vyhlášení čeká jen zákon; u zprávy z vlastního podnětu, absolutoria apod. končí procedura hlasováním pléna
+        future = FUTURE_STEPS if process_type in (None, *LEGISLATIVE) else [k for k in FUTURE_STEPS if k != "closed"]
         steps += [
             {"key": k, "type": None, "label": MILESTONES[i][1], "date": None}
             for i, k in enumerate(MILESTONE_KEYS)
-            if k in FUTURE_STEPS and i > reached
+            if k in future and i > reached
         ]
     plenary = [e["date"] for e in marked if stage_of[e["type"]] == 3]
     last = next(

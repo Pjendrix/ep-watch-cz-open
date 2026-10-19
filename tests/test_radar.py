@@ -311,3 +311,8 @@ def test_build_on_real_data_has_valid_shape():
     json.dumps(r)
     for row in r["active"] + r["done"]:
         assert row["cz"] and row["type"] in rd.LEGISLATIVE
+
+
+def test_non_legislative_procedure_does_not_wait_for_signature():
+    tl = rd.timeline(ev(("2026-01-10", "REFERRAL"), ("2026-09-01", "COMMITTEE_ADOPTING_REPORT")), "INI")
+    assert [s["label"] for s in tl["steps"] if not s["date"]] == ["Hlasování pléna"]
