@@ -22,12 +22,134 @@ def test_timeline_steps_from_events_not_current_stage():
             ("2025-06-24", "COMMITTEE_ADOPTING_REPORT"),
             ("2025-07-09", "PLENARY_ENDORSE_COMMITTEE_INTERINSTITUTIONAL_NEGOTIATIONS"),
             ("2025-10-15", "INTERINSTITUTIONAL_NEGOTIATION"),
-        )
+        ),
+        "COD",
     )
     assert tl["reached"] == "trilogue"
-    assert [s["date"] for s in tl["steps"]] == ["2024-02-08", "2025-06-24", "2025-07-09", None, None]
+    assert [(s["label"], s["date"]) for s in tl["steps"]] == [
+        ("Přiděleno výboru", "2024-02-08"),
+        ("Hlasování ve výboru", "2025-06-24"),
+        ("Plénum potvrdilo mandát k jednání s Radou", "2025-07-09"),
+        ("Jednání s Radou (trialog)", "2025-10-15"),
+        ("Hlasování pléna", None),  # čekající kroky bez data; jednání s Radou mezi nimi není (není povinné)
+        ("Podpis a vyhlášení", None),
+    ]
     assert tl["last_event"] == {"date": "2025-10-15", "type": "INTERINSTITUTIONAL_NEGOTIATION", "label": "jednání s Radou (trialog)"}
     assert tl["plenary_date"] is None and tl["unmapped"] == []
+
+
+# Skutečné události z EP Open Data (data/proposals.json, 18. 10. 2026), ověřené proti Legislativní observatoři EP (audit UX 2026-10-18).
+EDIP = ev(
+    ("2024-11-13", "REFERRAL"),
+    ("2025-01-30", "COMMITTEE_TABLING_OPINION"),
+    ("2025-03-13", "PLENARY_VOTE"),  # samostatné obecné hlasování, není rozhodnutí o zákoně
+    ("2025-03-21", "COMMITTEE_TABLING_REPORT"),
+    ("2025-04-08", "COMMITTEE_ADOPTING_OPINION"),
+    ("2025-04-24", "COMMITTEE_ADOPTING_REPORT"),
+    ("2025-04-30", "TABLING_PLENARY"),
+    ("2025-05-07", "PLENARY_ENDORSE_COMMITTEE_INTERINSTITUTIONAL_NEGOTIATIONS"),
+    ("2025-06-30", "INTERINSTITUTIONAL_NEGOTIATION"),
+    ("2025-10-16", "INTERINSTITUTIONAL_NEGOTIATION"),
+    ("2025-10-20", "COMMITTEE_APPROVE_PROVISIONAL_AGREEMENT"),
+    ("2025-11-20", "TABLING_PLENARY"),
+    ("2025-11-24", "TABLING_PLENARY"),
+    ("2025-11-25", "PLENARY_ADOPT_POSITION"),
+    ("2025-11-25", "PLENARY_DEBATE"),
+    ("2025-11-25", "PLENARY_VOTE"),
+    ("2025-11-25", "PLENARY_VOTE_RESULTS"),
+    ("2025-12-16", "SIGNATURE"),
+    ("2025-12-29", "PUBLICATION_OFFICIAL_JOURNAL"),
+)
+ADR = ev(
+    ("2023-11-20", "REFERRAL"),
+    ("2023-12-20", "COMMITTEE_TABLING_REPORT"),
+    ("2024-02-22", "COMMITTEE_ADOPTING_REPORT"),
+    ("2024-02-26", "TABLING_PLENARY"),
+    ("2024-03-11", "PLENARY_DEBATE"),
+    ("2024-03-13", "PLENARY_AMEND_PROPOSAL"),
+    ("2024-03-13", "PLENARY_VOTE"),
+    ("2025-02-20", "INTERINSTITUTIONAL_NEGOTIATION"),
+    ("2025-06-26", "INTERINSTITUTIONAL_NEGOTIATION"),
+    ("2025-09-25", "COMMITTEE_APPROVE_PROVISIONAL_AGREEMENT"),
+    ("2025-11-27", "REFERRAL"),
+    ("2025-12-04", "COMMITTEE_ADOPTING_REPORT"),
+    ("2025-12-05", "TABLING_PLENARY"),
+    ("2025-12-10", "TABLING_PLENARY"),
+    ("2025-12-16", "PLENARY_APPROVE_COUNCIL_POSITION"),
+    ("2025-12-16", "PLENARY_VOTE"),
+    ("2025-12-16", "SIGNATURE"),
+    ("2025-12-30", "PUBLICATION_OFFICIAL_JOURNAL"),
+)
+
+
+def steps(tl):
+    return [(s["label"], s["date"], s.get("date_to")) for s in tl["steps"]]
+
+
+def test_timeline_edip_matches_official_key_events():
+    """2024/0061(COD): plénum hlasovalo 25. 11. 2025, ne 13. 3. 2025; výbor hlasoval 24. 4., zpráva předložena 30. 4."""
+    tl = rd.timeline(EDIP, "COD")
+    assert tl["reached"] == "closed" and tl["plenary_date"] == "2025-11-25"
+    assert steps(tl) == [
+        ("Přiděleno výboru", "2024-11-13", None),
+        ("Hlasování ve výboru", "2025-04-24", None),
+        ("Zpráva předložena plénu", "2025-04-30", None),
+        ("Plénum potvrdilo mandát k jednání s Radou", "2025-05-07", None),
+        ("Jednání s Radou (trialog)", "2025-06-30", "2025-10-16"),
+        ("Výbor schválil dohodu s Radou", "2025-10-20", None),
+        ("Zpráva předložena plénu", "2025-11-20", "2025-11-24"),
+        ("Hlasování pléna – 1.\u00a0čtení", "2025-11-25", None),
+        ("Podpis aktu", "2025-12-16", None),
+        ("Vyhlášení v Úředním věstníku", "2025-12-29", None),
+    ]
+    assert "2025-03-13" not in {s["date"] for s in tl["steps"]}
+
+
+def test_timeline_adr_distinguishes_readings_and_signature_from_publication():
+    """2023/0376(COD): 1. čtení 13. 3. 2024, 2. čtení 16. 12. 2025, podpis 16. 12. 2025 a vyhlášení 30. 12. 2025 zvlášť."""
+    tl = rd.timeline(ADR, "COD")
+    assert tl["reached"] == "closed" and tl["plenary_date"] == "2025-12-16"
+    labels = steps(tl)
+    assert labels[2:4] == [("Zpráva předložena plénu", "2024-02-26", None), ("Hlasování pléna – 1.\u00a0čtení", "2024-03-13", None)]
+    assert labels[-3:] == [
+        ("Hlasování pléna – 2.\u00a0čtení (schválen postoj Rady)", "2025-12-16", None),
+        ("Podpis aktu", "2025-12-16", None),
+        ("Vyhlášení v Úředním věstníku", "2025-12-30", None),
+    ]
+    assert labels[1] == ("Hlasování ve výboru", "2024-02-22", None)
+
+
+def test_timeline_reading_only_for_ordinary_procedure_and_refer_back_hides_same_day_amendments():
+    events = ev(
+        ("2026-03-11", "PLENARY_AMEND"),
+        ("2026-03-11", "PLENARY_REFER_COMMITTEE_INTERINSTITUTIONAL_NEGOTIATIONS"),
+        ("2026-04-01", "PLENARY_ADOPT_POSITION"),
+    )
+    assert [s["label"] for s in rd.timeline(events, "COD")["steps"]] == [
+        "Plénum vrátilo zprávu výboru k jednání s Radou",
+        "Hlasování pléna – 1.\u00a0čtení",
+        "Podpis a vyhlášení",
+    ]
+    assert rd.timeline(events, "CNS")["steps"][1]["label"] == "Hlasování pléna"  # konzultace čtení nemá
+    alone = rd.timeline(ev(("2026-03-11", "PLENARY_AMEND")), "COD")["steps"]
+    assert alone[0]["label"] == "Plénum přijalo pozměňovací návrhy"
+
+
+def test_timeline_in_committee_shows_pending_steps():
+    tl = rd.timeline(ev(("2026-01-10", "REFERRAL"), ("2026-02-01", "COMMITTEE_TABLING_REPORT")), "COD")
+    assert tl["reached"] == "committee"
+    assert steps(tl) == [
+        ("Přiděleno výboru", "2026-01-10", None),
+        ("Hlasování ve výboru", None, None),
+        ("Hlasování pléna", None, None),
+        ("Podpis a vyhlášení", None, None),
+    ]
+
+
+def test_every_axis_event_has_stage():
+    stage_types = {t for _, _, types in rd.MILESTONES for t in types}
+    assert set(rd.AXIS) <= stage_types
+    assert not set(rd.AXIS) & rd.GENERIC_VOTE
 
 
 def test_timeline_closed_and_unknown_event_type_not_guessed():
@@ -53,11 +175,15 @@ def test_procedure_can_go_back_after_plenary_vote():
     assert tl["steps"][3]["date"] is None  # krok za aktuálním je bez data
 
 
-def test_generic_plenary_vote_does_not_beat_specific_event_same_day():
-    """Hlasování o odmítnutí mandátu k jednání s Radou není hlasování o zákoně."""
+def test_generic_plenary_vote_does_not_decide_stage():
+    """Hlasování o odmítnutí mandátu k jednání s Radou není hlasování o zákoně; samostatné obecné hlasování (typicky hned po
+    přidělení výboru, 2025/0329(COD)) proceduru neposune mezi odhlasované."""
     tl = rd.timeline(ev(("2025-10-22", "PLENARY_REJECT_COMMITTEE_INTERINSTUTIONAL_NEGOTIATIONS"), ("2025-10-22", "PLENARY_VOTE")))
     assert tl["reached"] == "trilogue"
-    assert rd.timeline(ev(("2026-09-15", "PLENARY_VOTE")))["reached"] == "plenary"
+    tl = rd.timeline(ev(("2025-11-12", "REFERRAL"), ("2025-11-13", "PLENARY_VOTE"), ("2025-11-13", "PLENARY_VOTE_RESULTS")))
+    assert tl["reached"] == "committee" and tl["plenary_date"] is None
+    assert tl["last_event"]["type"] == "REFERRAL"
+    assert rd.timeline(ev(("2026-09-15", "PLENARY_VOTE")))["reached"] is None
 
 
 def test_every_event_type_in_milestones_has_czech_label():
@@ -109,8 +235,8 @@ def test_procedures_split_into_active_and_done():
         "items": [
             proc("2025-0001", ev(("2025-02-01", "REFERRAL"))),
             proc("2025-0002", ev(("2025-02-01", "REFERRAL"), ("2026-01-10", "INTERINSTITUTIONAL_NEGOTIATION"))),
-            proc("2025-0003", ev(("2026-09-15", "PLENARY_VOTE"))),  # odhlasováno
-            proc("2023-0004", ev(("2024-01-10", "PLENARY_VOTE"), ("2024-02-01", "SIGNATURE"))),  # dávno uzavřeno
+            proc("2025-0003", ev(("2026-09-15", "PLENARY_ADOPT_POSITION"), ("2026-09-15", "PLENARY_VOTE"))),  # odhlasováno
+            proc("2023-0004", ev(("2024-01-10", "PLENARY_ADOPT_POSITION"), ("2024-02-01", "SIGNATURE"))),  # dávno uzavřeno
             proc("2025-0005", ev(("2025-02-01", "REFERRAL")), ptype="INI"),  # nelegislativní
             proc("2025-0006", ev(("2025-02-01", "REFERRAL")), roles=(("AUTHOR", 1),)),  # bez české role
             proc("2025-0007", [], with_events=False),  # ještě nestaženo

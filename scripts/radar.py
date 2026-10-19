@@ -8,7 +8,8 @@ Nic se nestahuje ani neodhaduje, jen se spojují soubory, které už existují:
 - data/votes/ (HowTheyVote): poslední závěrečné hlasování procedury (podle čísla procedury) pro odkaz na výsledek.
 
 Pravidla (vypsaná i na webu, o-projektu#radar):
-- Stav procedury se určuje z jejích událostí podle pevné tabulky MILESTONES. Pole current_stage z EP API se nepoužívá,
+- Stav procedury se určuje z jejích událostí podle pevné tabulky MILESTONES, časová osa podle tabulky AXIS (skutečné
+  milníky s vlastním datem, 1. a 2. čtení, podpis a vyhlášení zvlášť). Pole current_stage z EP API se nepoužívá,
   protože u uzavřených procedur zůstává „první čtení“.
 - „Rozpracované“ = legislativní procedura (COD, CNS, APP) s českou rolí, o které ještě nehlasovalo plénum.
   Řazení: nejblíž hlasování (dosažený krok), pak podle poslední události.
@@ -55,14 +56,15 @@ STAGE_CS = {
     "PROC_END": "konec postupu",
 }
 
-# Kroky procedury pro časovou osu: (klíč, název, typy událostí EP API, které krok znamenají). Pořadí = průběh.
+# Fáze procedury pro stav na radaru (rozpracovaná / odhlasovaná, řazení): (klíč, název, typy událostí EP API). Pořadí = průběh.
+# Název fáze se ukazuje jen u kroků, které procedura teprve čeká (FUTURE_STEPS); hotové kroky mají vlastní popisek (AXIS).
 MILESTONES = [
     (
         "committee",
         "Výbor",
         {"REFERRAL", "COMMITTEE_TABLING_REPORT", "COMMITTEE_TABLING_AMENDMENT", "COMMITTEE_TABLING_OPINION", "COMMITTEE_ADOPTING_OPINION"},
     ),
-    ("report", "Zpráva výboru", {"COMMITTEE_ADOPTING_REPORT", "TABLING_PLENARY"}),
+    ("report", "Hlasování ve výboru", {"COMMITTEE_ADOPTING_REPORT", "TABLING_PLENARY"}),
     (
         "trilogue",
         "Jednání s Radou",
@@ -77,11 +79,9 @@ MILESTONES = [
     ),
     (
         "plenary",
-        "Hlasování v plénu",
+        "Hlasování pléna",
         {
-            "PLENARY_VOTE",
             "PLENARY_ADOPT_POSITION",
-            "PLENARY_VOTE_RESULTS",
             "PLENARY_APPROVE_COUNCIL_POSITION",
             "PLENARY_AMEND_COUNCIL_POSITION",
             "PLENARY_AMEND_PROPOSAL",
@@ -91,8 +91,36 @@ MILESTONES = [
     ("closed", "Podpis a vyhlášení", {"SIGNATURE", "PUBLICATION_OFFICIAL_JOURNAL"}),
 ]
 MILESTONE_KEYS = [k for k, _, _ in MILESTONES]
-# Obecné „hlasování v plénu“ provází i hlasování o mandátu k jednání s Radou: krok určí, jen když ten den není konkrétnější událost.
+# Obecné „hlasování v plénu“ (Activity bez rozhodnutí) nic neurčuje: provází rozhodnutí pléna, ale EP ho zveřejňuje i samostatně,
+# typicky pár dní po přidělení výboru (2024/0061(COD) 13. 3. 2025). O čem se hlasovalo, API neříká, proto ho nepočítáme
+# jako hlasování o zákoně ani ho nedáváme na časovou osu (v seznamu událostí na stránce Příběh zákona zůstává).
 GENERIC_VOTE = {"PLENARY_VOTE", "PLENARY_VOTE_RESULTS"}
+
+# Časová osa = skutečné milníky v pořadí, jak proběhly, každý s vlastním datem: typ události -> český popisek.
+# Ostatní události (návrhy zpráv, stanoviska, rozpravy, obecná hlasování) na osu nejdou, jen do seznamu událostí.
+# Čtení se neodhaduje, plyne z typu: postoj EP k návrhu = 1. čtení, hlasování o postoji Rady = 2. čtení (řádný postup, COD).
+READING_1 = {"PLENARY_ADOPT_POSITION", "PLENARY_AMEND_PROPOSAL"}
+READING_2 = {"PLENARY_APPROVE_COUNCIL_POSITION", "PLENARY_AMEND_COUNCIL_POSITION"}
+AXIS = {
+    "REFERRAL": "Přiděleno výboru",
+    "COMMITTEE_ADOPTING_REPORT": "Hlasování ve výboru",
+    "TABLING_PLENARY": "Zpráva předložena plénu",
+    "PLENARY_ENDORSE_COMMITTEE_INTERINSTITUTIONAL_NEGOTIATIONS": "Plénum potvrdilo mandát k jednání s Radou",
+    "PLENARY_REFER_COMMITTEE_INTERINSTITUTIONAL_NEGOTIATIONS": "Plénum vrátilo zprávu výboru k jednání s Radou",
+    "PLENARY_REJECT_COMMITTEE_INTERINSTUTIONAL_NEGOTIATIONS": "Plénum odmítlo mandát k jednání s Radou",
+    "PLENARY_AMEND": "Plénum přijalo pozměňovací návrhy",
+    "INTERINSTITUTIONAL_NEGOTIATION": "Jednání s Radou (trialog)",
+    "COMMITTEE_APPROVE_PROVISIONAL_AGREEMENT": "Výbor schválil dohodu s Radou",
+    "PLENARY_ADOPT_POSITION": "Hlasování pléna",
+    "PLENARY_AMEND_PROPOSAL": "Hlasování pléna",
+    "PLENARY_APPROVE_COUNCIL_POSITION": "Hlasování pléna – 2.\u00a0čtení (schválen postoj Rady)",
+    "PLENARY_AMEND_COUNCIL_POSITION": "Hlasování pléna – 2.\u00a0čtení (pozměněn postoj Rady)",
+    "PLENARY_DECISION": "Rozhodnutí pléna",
+    "SIGNATURE": "Podpis aktu",
+    "PUBLICATION_OFFICIAL_JOURNAL": "Vyhlášení v Úředním věstníku",
+}
+# Kroky, které procedura ještě čeká (šedě za posledním milníkem). Jednání s Radou není povinné, proto mezi nimi není.
+FUTURE_STEPS = ["report", "plenary", "closed"]
 
 # Události v češtině (poslední událost u procedury). Neznámý typ se nepřekládá odhadem: vypíše se v radar.json
 # (unmapped_events) a test na to upozorní.
@@ -175,31 +203,57 @@ def committee_info(code: str | None) -> dict | None:
     return {"code": code, "name": name, "category": cat}
 
 
-def timeline(events: list[dict]) -> dict:
-    """Kroky procedury z událostí: {steps: [{key, label, date}], reached, plenary_date, last_event, unmapped}.
+def axis_label(event_type: str, process_type: str | None) -> str:
+    if event_type in READING_1 and process_type == "COD":
+        return "Hlasování pléna – 1.\u00a0čtení"
+    return AXIS[event_type]
 
-    Aktuální krok = krok poslední události (procedura se může vracet: po hlasování v plénu znovu jednání s Radou).
-    V den poslední události rozhoduje konkrétní událost před obecným „hlasováním v plénu“ (GENERIC_VOTE).
-    date u kroku = první událost kroku (kdy krok začal); kroky za aktuálním date nemají."""
+
+def axis(events: list[dict], process_type: str | None = None) -> list[dict]:
+    """Milníky časové osy v pořadí: [{type, label, date, date_to?}]. Stejné události po sobě (trialogy, předložení plénu
+    několik dní za sebou) se slučují do jednoho milníku s rozsahem dat. Pozměňovací návrhy pléna ve dni, kdy plénum vrátilo
+    zprávu výboru, jsou součástí toho kroku a zvlášť se neukazují."""
+    days_refer = {e["date"] for e in events if e["type"] == "PLENARY_REFER_COMMITTEE_INTERINSTITUTIONAL_NEGOTIATIONS"}
+    order = list(AXIS)
+    picked = sorted(
+        {(e["date"], e["type"]) for e in events if e["type"] in AXIS and not (e["type"] == "PLENARY_AMEND" and e["date"] in days_refer)},
+        key=lambda x: (x[0], order.index(x[1])),
+    )
+    out: list[dict] = []
+    for date, typ in picked:
+        if out and out[-1]["type"] == typ:
+            out[-1]["date_to"] = date
+            continue
+        out.append({"type": typ, "label": axis_label(typ, process_type), "date": date})
+    return out
+
+
+def timeline(events: list[dict], process_type: str | None = None) -> dict:
+    """Stav a časová osa procedury z událostí: {steps, reached, plenary_date, last_event, unmapped}.
+
+    steps = skutečné milníky (axis) s datem a za nimi kroky, které procedura ještě čeká (bez data, FUTURE_STEPS).
+    reached = fáze poslední události (procedura se může vracet: po hlasování v plénu znovu jednání s Radou).
+    V den poslední události rozhoduje nejvyšší fáze; obecná hlasování (GENERIC_VOTE) fázi neurčují."""
     stage_of = {t: i for i, (_, _, types) in enumerate(MILESTONES) for t in types}
     unmapped = sorted({e["type"] for e in events if e["type"] not in stage_of and e["type"] not in EVENT_CS})
     marked = [e for e in events if e["type"] in stage_of]
     reached = None
     if marked:
         day = max(e["date"] for e in marked)
-        that_day = [e for e in marked if e["date"] == day]
-        specific = [stage_of[e["type"]] for e in that_day if e["type"] not in GENERIC_VOTE]
-        reached = max(specific) if specific else max(stage_of[e["type"]] for e in that_day)
-    steps = []
-    for i, (key, label, types) in enumerate(MILESTONES):
-        dates = [e["date"] for e in marked if e["type"] in types]
-        steps.append({"key": key, "label": label, "date": min(dates) if dates and reached is not None and i <= reached else None})
+        reached = max(stage_of[e["type"]] for e in marked if e["date"] == day)
+    steps = [{"key": MILESTONE_KEYS[stage_of[m["type"]]], **m} for m in axis(events, process_type)]
+    if reached is not None and MILESTONE_KEYS[reached] != "closed":
+        steps += [
+            {"key": k, "type": None, "label": MILESTONES[i][1], "date": None}
+            for i, k in enumerate(MILESTONE_KEYS)
+            if k in FUTURE_STEPS and i > reached
+        ]
     plenary = [e["date"] for e in marked if stage_of[e["type"]] == 3]
     last = next(
         (
             {"date": e["date"], "type": e["type"], "label": EVENT_CS[e["type"]]}
             for e in sorted(events, key=lambda e: e["date"], reverse=True)
-            if e["type"] in EVENT_CS
+            if e["type"] in EVENT_CS and e["type"] not in GENERIC_VOTE
         ),
         None,
     )
@@ -292,7 +346,7 @@ def procedures_view(
         if "events" not in p:
             missing += 1
             continue
-        tl = timeline(p["events"])
+        tl = timeline(p["events"], p.get("process_type"))
         unmapped.update(tl["unmapped"])
         row = {
             "procedure": p["procedure"],
