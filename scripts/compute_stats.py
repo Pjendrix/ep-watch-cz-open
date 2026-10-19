@@ -75,7 +75,7 @@ DEFINITIONS = {
     "hlasování dopadlo opačně“ platí pro jakoukoli skupinu poslanců, jejíž čistý rozdíl pro/proti převýší "
     "celkový rozdíl, takže nic neříká o větším vlivu české delegace. U ostatních států se berou všichni "
     "poslanci, které HowTheyVote u hlasování vede (mandáty z EP API máme jen pro české poslance).",
-    "presence": "Prezence na zasedání (podle EP): v kolika dnech jednání v plénu v době mandátu byl poslanec zapsán v prezenční listině EP "
+    "presence": "Docházka na zasedání (podle EP): v kolika dnech jednání v plénu v době mandátu byl poslanec zapsán v prezenční listině EP "
     "(EP Open Data, meetings). Počítají se jen dny, ke kterým listina už existuje (budoucí dny se nepočítají jako neúčast). "
     "Kdo je v listině i mezi omluvenými, je přítomen; omluvení se ukazují zvlášť. Je to jiná metrika než Účast na hlasování, "
     "která počítá hlasy z HowTheyVote: poslanec mohl být na jednání a nehlasovat, nebo se hlasování nezúčastnit z jiných důvodů. "
