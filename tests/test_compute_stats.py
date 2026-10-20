@@ -154,6 +154,7 @@ def test_run_writes_files(tmp_path):
             "code": "EPP",
             "ep_code": "PPE",
             "short_label": "EPP",
+            "short_label_ep": "EPP",
             "label": "MOCK EPP",
             "name_cs": "MOCK lidovci",
             "color": None,
@@ -169,6 +170,7 @@ def test_run_writes_files(tmp_path):
         {
             "id": 20,
             "short_label": "MOCK_P",
+            "short_label_ep": "MOCK_P",
             "name": "MOCK strana",
             "independent": False,
             "color": None,

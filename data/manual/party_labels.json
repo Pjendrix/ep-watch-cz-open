@@ -1,0 +1,10 @@
+{
+ "note": "Zobrazované (čitelné) názvy stran pro web i karty ke sdílení. Klíč = ID strany v EP Open Data. Zkratky z EP (TOP09/STAN, PIR, AUTO…) zůstávají v datech jako short_label_ep. Nezávislí (Ind.) se zobrazují podle rodu („nezávislý / nezávislá“), ne odsud. Plný název dál na stránce strany.",
+ "parties": {
+  "6793": "TOP 09",
+  "6794": "ANO",
+  "6862": "Piráti",
+  "7033": "Přísaha",
+  "7034": "Motoristé"
+ }
+}

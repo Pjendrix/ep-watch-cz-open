@@ -601,12 +601,21 @@ def identity(manual: dict, logos: dict, key: str, assets: Path, kind_dir: str) -
 
 
 def build_groups(
-    index_groups: list[dict], meps: list[dict], votes: list[dict], assets: Path, manual: dict | None = None, logos: dict | None = None
+    index_groups: list[dict],
+    meps: list[dict],
+    votes: list[dict],
+    assets: Path,
+    manual: dict | None = None,
+    logos: dict | None = None,
+    labels_path: Path | None = None,
 ) -> list[dict]:
     manual = (manual or {}).get("groups", {})
     logos = (logos or {}).get("groups", {})
     mapping = derive_group_codes(meps, votes)
     names_cs = {g["code"]: g["name_cs"] for m in meps for g in m["groups"]}
+    from overrides import load_group_labels  # noqa: PLC0415 (overrides importuje compute_stats)
+
+    glabels = load_group_labels(labels_path) if labels_path else {}
     out = []
     for g in index_groups:
         ep_code = mapping.get(g["code"])
@@ -614,7 +623,8 @@ def build_groups(
             {
                 "code": g["code"],
                 "ep_code": ep_code,
-                "short_label": g["short_label"],
+                "short_label": glabels.get(g["code"], g["short_label"]),
+                "short_label_ep": g["short_label"],
                 "label": g["label"],
                 "name_cs": names_cs.get(ep_code),
                 **identity(manual, logos, g["code"], assets, "ep"),
@@ -632,6 +642,7 @@ def build_parties(meps: list[dict], assets: Path, manual: dict | None = None, lo
             parties[p["org_id"]] = {
                 "id": int(p["org_id"]),
                 "short_label": p["short_label"],
+                "short_label_ep": p.get("short_label_ep", p["short_label"]),
                 "name": p["name"],
                 "independent": p["name"] == INDEPENDENT,
                 **identity(manual, logos, p["org_id"], assets, "cz"),
@@ -742,6 +753,9 @@ def run(data_dir: Path, assets: Path) -> dict:
         require(m, ["id", "mandates", "groups", "parties"], f"meps.json poslanec {m.get('id')}")
     index, votes = load_votes(data_dir / "votes")
     meps = meps_doc["meps"]
+    from overrides import apply_party_labels  # noqa: PLC0415 (overrides importuje compute_stats)
+
+    apply_party_labels(meps, data_dir / "manual" / "party_labels.json")
     topics = top_topics(votes)
     stats = {
         "sources": {"votes": index["source"], "meps": meps_doc["source"]},
@@ -762,7 +776,7 @@ def run(data_dir: Path, assets: Path) -> dict:
         write("own_work.json", own)
     manual = load_manual(data_dir / "manual" / "colors.json")
     logos = load_logos(data_dir / "manual" / "logos.json", assets.parent)
-    write("groups.json", build_groups(index["groups"], meps, votes, assets, manual, logos))
+    write("groups.json", build_groups(index["groups"], meps, votes, assets, manual, logos, data_dir / "manual" / "group_labels.json"))
     write("parties.json", build_parties(meps, assets, manual, logos))
     return stats
 

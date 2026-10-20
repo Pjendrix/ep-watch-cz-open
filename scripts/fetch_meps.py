@@ -276,6 +276,14 @@ def main(argv=None) -> int:
     args = p.parse_args(argv)
     try:
         data = fetch(EPClient(cache_dir=args.cache_dir))
+        # ruční opravy jmen (diakritika, data/manual/overrides.json) už v meps.json, aby web i karty měly všude stejné jméno
+        from compute_stats import FormatError as OverrideError
+        from overrides import apply_name_overrides
+
+        try:
+            apply_name_overrides(data["meps"], root / "data" / "manual" / "overrides.json")
+        except OverrideError as e:
+            raise FormatError(str(e)) from e
     except FormatError as e:
         print(f"CHYBA FORMÁTU: {e}", file=sys.stderr)
         return 2

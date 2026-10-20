@@ -98,3 +98,60 @@ def card_parties(rows: list[dict], max_rows: int = MAX_CARD_ROWS) -> list[dict]:
         )
         items = keep
     return items
+
+
+def card_items(cz: list[dict], meps_by_id: dict, parties: list[dict], groups: list[dict]) -> list[dict]:
+    """Strany pro kartu hlasování se jmény (zadání 20. 10. 2026, K1): strana a frakce k datu hlasování, nezávislí každý
+    zvlášť. [{partyId, label, logo, aspect, color, group, groups, independent, members: [{id, surname, sortLabel, position}],
+    positions}] od největší strany, při shodě podle názvu; poslanci podle hlasu (pro → proti → zdržel → nehlasoval)
+    a uvnitř podle sort_label. Shodná příjmení dostanou iniciálu. Zrcadlo cardItems() v public/lib/ui.js."""
+    by_id = {p["id"]: p for p in parties}
+    items: dict[str, dict] = {}
+    for p in cz:
+        m = meps_by_id[p["member_id"]]
+        entry = by_id.get(p.get("national_party_id"))
+        indep = bool((entry or {}).get("independent")) or not entry and p.get("national_party") in (None, "Independent")
+        if indep:
+            key = f"ind-{m['id']}"
+            label = {"FEMALE": "nezávislá", "MALE": "nezávislý"}.get(m.get("gender"), "nezávislý poslanec")
+        else:
+            key = str((entry or {}).get("id") or p.get("national_party"))
+            label = (entry or {}).get("short_label") or p.get("national_party")
+        it = items.setdefault(
+            key,
+            {
+                "partyId": None if indep or not entry else entry["id"],
+                "label": label,
+                "logo": None if indep else (entry or {}).get("logo"),
+                "aspect": None if indep else (entry or {}).get("logo_aspect"),
+                "color": None if indep else (entry or {}).get("chart_color") or (entry or {}).get("color"),
+                "independent": indep,
+                "groups": [],
+                "members": [],
+            },
+        )
+        g = group_label(p.get("group_code"), groups)
+        if g not in it["groups"]:
+            it["groups"].append(g)
+        it["members"].append(
+            {
+                "id": m["id"],
+                "surname": m.get("family_name") or m["name"],
+                "given": m.get("given_name") or "",
+                "sortLabel": m.get("sort_label") or m["name"],
+                "position": p["position"],
+            }
+        )
+    surnames = [x["surname"] for it in items.values() for x in it["members"]]
+    out = []
+    for it in items.values():
+        it["groups"].sort()
+        it["group"] = " · ".join(it["groups"])
+        it["members"].sort(key=lambda x: (POSITIONS.index(x["position"]), x["sortLabel"]))
+        for x in it["members"]:
+            if surnames.count(x["surname"]) > 1 and x["given"]:
+                x["surname"] = f"{x['given'][0]}. {x['surname']}"
+            del x["given"]
+        it["positions"] = [x["position"] for x in it["members"]]
+        out.append(it)
+    return sorted(out, key=lambda r: (-len(r["members"]), r["label"].casefold()))

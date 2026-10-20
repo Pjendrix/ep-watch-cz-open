@@ -61,6 +61,8 @@ def build(data_dir: Path) -> dict:
         require(v, ["id", "date", "title", "result", "cz_positions"], f"hlasování {v.get('id')}")
     meps = {m["id"]: m for m in overview["meps"]}
     independent = {str(p["id"]) for p in parties if p.get("independent")}
+    # zobrazovaný název strany z parties.json (data/manual/party_labels.json), zkratka z hlasování jen když strana chybí
+    party_label = {str(p["id"]): p["short_label"] for p in parties}
 
     roles_path = data_dir / "vote_roles.json"
     roles = _read(roles_path)["votes"] if roles_path.exists() else {}
@@ -91,7 +93,7 @@ def build(data_dir: Path) -> dict:
                 {
                     "id": m["id"],
                     "name": _name(m),
-                    "party": (p.get("national_party") if p else None),
+                    "party": (party_label.get(str(p.get("national_party_id")), p.get("national_party")) if p else None),
                     "ind": bool(p and str(p.get("national_party_id")) in independent),
                     "group": (p.get("group_code") if p else None),
                     "pos": POS_CODE[p["position"]] if p else "X",

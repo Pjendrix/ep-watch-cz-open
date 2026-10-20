@@ -1,0 +1,14 @@
+{
+ "note": "Krátké české názvy politických skupin EP pro web i karty ke sdílení (jeden číselník). Klíč = kód skupiny v HowTheyVote i v EP Open Data (obě podoby). Původní zkratka zůstává v datech jako short_label_ep, úřední český název skupiny jako name_cs.",
+ "groups": {
+  "EPP": "EPP", "PPE": "EPP",
+  "SD": "S&D", "S-D": "S&D",
+  "PFE": "Patrioti",
+  "ECR": "ECR",
+  "RENEW": "Renew",
+  "GREEN_EFA": "Zelení", "VERTS-ALE": "Zelení",
+  "GUE_NGL": "Levice", "THE-LEFT": "Levice", "GUE-NGL": "Levice",
+  "ESN": "ESN",
+  "NI": "nezařazení"
+ }
+}
