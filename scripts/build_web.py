@@ -73,6 +73,22 @@ def current(items: list[dict], day: str) -> dict | None:
     return items[-1]
 
 
+def membership_state(mandates: list[dict], periods: list[dict], last_vote: str | None) -> dict:
+    """Je členství (ve frakci nebo straně) platné k poslednímu hlasování v datech? Podle konce posledního mandátu a období
+    členství (F1c, zadání 20. 10. 2026). Bývalý člen má datum konce členství (dřívější z konce členství a mandátu)."""
+    mandate_open = bool(mandates) and mandates[-1].get("end") is None
+    day = last_vote or "9999-12-31"
+    now = mandate_open and any(x["start"] <= day and (x.get("end") is None or x["end"] >= day) for x in periods)
+    if now:
+        return {"current": True, "end": None}
+    ends = [x.get("end") for x in periods if x.get("end")]
+    mand_end = mandates[-1].get("end") if mandates else None
+    end = max(ends) if ends else None
+    if mand_end and (end is None or mand_end < end):
+        end = mand_end
+    return {"current": False, "end": end}
+
+
 def vote_title(v: dict) -> str:
     """Oficiální český název procedury (title_cs z EP Open Data), jinak anglický název z HowTheyVote."""
     return v.get("title_cs") or v.get("title") or (v.get("procedure") or {}).get("title") or v.get("reference") or f"Hlasování {v['id']}"
@@ -558,7 +574,30 @@ def party_reports(pid: str, meps: list[dict], own: dict | None) -> dict | None:
     return {"items": reports, "shadow_count": shadow, "source": own["source"], "updated": own.get("updated")}
 
 
-def build_parties_web(stats: dict, parties: list[dict], meps: list[dict], votes_by_id: dict, day: str, own: dict | None = None) -> tuple:
+def party_groups(members: list[tuple[dict, list[dict], bool]], groups: list[dict] | None) -> list[str]:
+    """Frakce poslanců strany v době členství ve straně (kódy HowTheyVote), aktuální první; bez nezařazených."""
+    by_ep = {g.get("ep_code"): g["code"] for g in groups or []}
+    found: dict[str, tuple] = {}
+    for m, periods, cur in members:
+        for g in m["groups"]:
+            code = by_ep.get(g["code"], g["code"])
+            if code == "NI" or not any(g["start"] <= (p.get("end") or "9999") and (g.get("end") or "9999") >= p["start"] for p in periods):
+                continue
+            key = (cur and g.get("end") is None, g.get("end") or "9999")
+            found[code] = max(found.get(code, key), key)
+    return [c for c, _ in sorted(found.items(), key=lambda kv: (kv[1], kv[0]), reverse=True)]
+
+
+def build_parties_web(
+    stats: dict,
+    parties: list[dict],
+    meps: list[dict],
+    votes_by_id: dict,
+    day: str,
+    own: dict | None = None,
+    groups: list[dict] | None = None,
+    last_vote: str | None = None,
+) -> tuple:
     meps_by_id = {m["id"]: m for m in meps}
     index, pages = [], {}
     for party in parties:
@@ -566,11 +605,13 @@ def build_parties_web(stats: dict, parties: list[dict], meps: list[dict], votes_
         if party.get("independent") or pid not in stats.get("parties", {}):
             continue
         st = stats["parties"][pid]
-        members = []
+        members, member_periods = [], []
         for m in meps:
             periods = [{"start": p["start"], "end": p["end"]} for p in m["parties"] if p["org_id"] == pid]
             if periods:
-                members.append({**mep_summary(m, day), "party_periods": periods, "total": stats["meps"][str(m["id"])]["total"]})
+                state = membership_state(m["mandates"], periods, last_vote)
+                members.append({**mep_summary(m, day), "party_periods": periods, **state, "total": stats["meps"][str(m["id"])]["total"]})
+                member_periods.append((m, periods, state["current"]))
         summary = {
             **party,
             "members": len(members),
@@ -590,6 +631,7 @@ def build_parties_web(stats: dict, parties: list[dict], meps: list[dict], votes_
             "sources": stats["sources"],
             "definitions": stats["definitions"],
             "member_list": members,
+            "groups": party_groups(member_periods, groups),
             "reports": party_reports(pid, meps, own),
             "splits": [split_item(v) for v in st["splits"]["recent"]],
             "splits_main": [split_item(v) for v in st["splits"]["recent_main"]],
@@ -598,12 +640,23 @@ def build_parties_web(stats: dict, parties: list[dict], meps: list[dict], votes_
 
 
 def build_eu_groups(
-    votes: list[dict], votes_by_id: dict, meps: list[dict], stats: dict, groups: list[dict], group_web: dict | None, day: str
+    votes: list[dict],
+    votes_by_id: dict,
+    meps: list[dict],
+    stats: dict,
+    groups: list[dict],
+    group_web: dict | None,
+    day: str,
+    countries: dict | None = None,
+    chairs: dict | None = None,
+    names_cs: dict | None = None,
 ) -> tuple[dict, dict]:
-    """Politické skupiny EP (index + stránky): souhrn celé skupiny z group_counts a čeští členové (data/eugroups/)."""
+    """Politické skupiny EP (index + stránky): souhrn celé skupiny z group_counts, čeští členové (i bývalí, příznak current),
+    složení podle zemí (group_countries.json) a předsedové (group_chairs.json) (data/eugroups/)."""
     gs = build_group_stats(votes)
     by_ep = {g.get("ep_code"): g["code"] for g in groups}
     meps_by_id = {m["id"]: m for m in meps}
+    last_vote = max((v["date"] for v in votes), default=None)
     index, pages = [], {}
     for g in groups:
         code = g["code"]
@@ -611,15 +664,31 @@ def build_eu_groups(
             continue
         members = []
         for m in meps:
-            cur = current(m["groups"], day)
-            if any(x["end"] is None for x in m["mandates"]) and cur and by_ep.get(cur["code"], cur["code"]) == code:
-                members.append({**mep_summary(m, day), "total": stats["meps"][str(m["id"])]["total"]})
+            periods = [x for x in m["groups"] if by_ep.get(x["code"], x["code"]) == code]
+            if not periods:
+                continue
+            state = membership_state(m["mandates"], periods, last_vote)
+            extra = {}
+            if not state["current"] and state["end"]:
+                p_then = current(m["parties"], state["end"])
+                extra["party_then"] = {"id": int(p_then["org_id"]), "short_label": p_then["short_label"]} if p_then else None
+            members.append({**mep_summary(m, day), **state, **extra, "total": stats["meps"][str(m["id"])]["total"]})
+        members.sort(key=lambda r: (not r["current"], r.get("sort_label") or r["name"]))
         st = gs[code]
+        comp = ((countries or {}).get("groups") or {}).get(code)
+        cs = lambda cc: ((names_cs or {}).get(cc) or {}).get("cs")  # noqa: E731
+        if comp:
+            comp = {**comp, "by_country": [{**c, "cs": cs(c["cc"])} for c in comp["by_country"]]}
+        group_chairs = [{**c, "country_cs": cs(c.get("country"))} for c in ((chairs or {}).get("groups") or {}).get(code, [])]
         row = lambda vid: {**vote_summary(votes_by_id[vid], meps_by_id), "gc": votes_by_id[vid]["group_counts"][code]}  # noqa: B023
         summary = {
             **{k: g.get(k) for k in ("code", "short_label", "name_cs", "label", "color", "chart_color", "logo", "logo_aspect")},
+            # úřední český název z EP API, když ho data českých poslanců nemají (skupina bez Čechů)
+            "name_cs": g.get("name_cs") or (((chairs or {}).get("group_meta") or {}).get(code) or {}).get("name_cs"),
             "web": ((group_web or {}).get("groups") or {}).get(code, {}).get("web"),
-            "cz_members": len(members),
+            "cz_members": sum(1 for r in members if r["current"]),
+            "seats": comp["seats"] if comp else None,
+            "n_countries": comp["n_countries"] if comp else None,
             "attendance": st["attendance"],
             "attendance_main": st["attendance_main"],
             "majority": st["majority"],
@@ -634,6 +703,10 @@ def build_eu_groups(
             **summary,
             "sources": stats["sources"],
             "member_list": members,
+            "countries": {"as_of": countries["as_of"], "vote_id": countries["vote_id"], **comp} if comp else None,
+            "countries_source": (countries or {}).get("source") if comp else None,
+            "chairs": group_chairs if chairs else None,
+            "chairs_source": (chairs or {}).get("source"),
             "splits_list": [row(v) for v in st["split_ids"]],
             "splits_list_main": [row(v) for v in st["split_ids_main"]],
         }
@@ -777,6 +850,7 @@ def run(data_dir: Path, day: str) -> dict:
         write_json(data_dir / "session.json", build_session(stats, votes, votes_by_id, by_id))
         gw_path, groups_path = data_dir / "group_web.json", data_dir / "groups.json"
         if groups_path.exists():
+            comp_path, chairs_path = data_dir / "group_countries.json", data_dir / "group_chairs.json"
             eu_index, eu_pages = build_eu_groups(
                 votes,
                 votes_by_id,
@@ -785,11 +859,25 @@ def run(data_dir: Path, day: str) -> dict:
                 json.loads(groups_path.read_text(encoding="utf-8")),
                 json.loads(gw_path.read_text(encoding="utf-8")) if gw_path.exists() else None,
                 day,
+                json.loads(comp_path.read_text(encoding="utf-8")) if comp_path.exists() else None,
+                json.loads(chairs_path.read_text(encoding="utf-8")) if chairs_path.exists() else None,
+                json.loads(cs_path.read_text(encoding="utf-8")).get("countries")
+                if (cs_path := data_dir / "manual" / "countries_cs.json").exists()
+                else None,
             )
             write_json(data_dir / "eugroups" / "index.json", eu_index)
             for code, page in eu_pages.items():
                 write_json(data_dir / "eugroups" / f"{code}.json", page)
-        party_index, party_pages = build_parties_web(stats, parties, meps, votes_by_id, day, own)
+        party_index, party_pages = build_parties_web(
+            stats,
+            parties,
+            meps,
+            votes_by_id,
+            day,
+            own,
+            json.loads(groups_path.read_text(encoding="utf-8")) if groups_path.exists() else None,
+            max((v["date"] for v in votes), default=None),
+        )
         write_json(data_dir / "parties" / "index.json", party_index)
         for pid, page in party_pages.items():
             write_json(data_dir / "parties" / f"{pid}.json", page)

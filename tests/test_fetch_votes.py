@@ -25,7 +25,7 @@ def edit(csv_dir, table, old, new):
 
 def test_run_filters_term_and_country(csv_dir, tmp_path):
     out = tmp_path / "out"
-    months = fv.run(csv_dir, out, release="MOCK_TAG")
+    months = fv.run(csv_dir, out, release="MOCK_TAG", group_composition=False)
     bench = json.loads((out.parent / "benchmarks.json").read_text(encoding="utf-8"))
     assert bench["source"] == {"release": "MOCK_TAG"} and "ep" in bench and "rank" not in json.dumps(bench)
 
@@ -52,7 +52,7 @@ def test_run_filters_term_and_country(csv_dir, tmp_path):
 
 
 def test_group_and_party_taken_per_vote(csv_dir, tmp_path):
-    months = fv.run(csv_dir, tmp_path / "out", release=None)
+    months = fv.run(csv_dir, tmp_path / "out", release=None, group_composition=False)
     sept = {v["id"]: v for v in months["2024-09"]["votes"]}
     p200 = sept[3]["cz_positions"][1]
     # v červenci byl 200 v PFE se stranou, v září nezařazený bez strany
@@ -60,7 +60,7 @@ def test_group_and_party_taken_per_vote(csv_dir, tmp_path):
 
 
 def test_missing_values_are_null_not_guessed(csv_dir, tmp_path):
-    months = fv.run(csv_dir, tmp_path / "out", release=None)
+    months = fv.run(csv_dir, tmp_path / "out", release=None, group_composition=False)
     v4 = {v["id"]: v for v in months["2024-09"]["votes"]}[4]
     assert v4["result"] is None
     assert v4["reference"] is None
@@ -81,20 +81,20 @@ def test_missing_values_are_null_not_guessed(csv_dir, tmp_path):
 def test_format_changes_raise(csv_dir, tmp_path, table, old, new, msg):
     edit(csv_dir, table, old, new)
     with pytest.raises(fv.FormatError, match=msg):
-        fv.run(csv_dir, tmp_path / "out", release=None)
+        fv.run(csv_dir, tmp_path / "out", release=None, group_composition=False)
 
 
 def test_duplicate_member_vote_raises(csv_dir, tmp_path):
     p = csv_dir / "member_votes.csv"
     p.write_text(p.read_text(encoding="utf-8") + "4,200,FOR,CZE,NI,NI,,\n", encoding="utf-8")
     with pytest.raises(fv.FormatError, match="duplicitní"):
-        fv.run(csv_dir, tmp_path / "out", release=None)
+        fv.run(csv_dir, tmp_path / "out", release=None, group_composition=False)
 
 
 def test_missing_file_raises(csv_dir, tmp_path):
     (csv_dir / "geo_areas.csv").unlink()
     with pytest.raises(fv.FormatError, match="geo_areas"):
-        fv.run(csv_dir, tmp_path / "out", release=None)
+        fv.run(csv_dir, tmp_path / "out", release=None, group_composition=False)
 
 
 def test_main_returns_error_code_on_format_change(csv_dir, tmp_path):
@@ -128,7 +128,7 @@ def test_table_url_pins_resolved_tag():
 
 
 def test_group_counts_cover_all_countries(csv_dir, tmp_path):
-    months = fv.run(csv_dir, tmp_path / "out", release=None)
+    months = fv.run(csv_dir, tmp_path / "out", release=None, group_composition=False)
     v2 = months["2024-07"]["votes"][0]
     # [pro, proti, zdržel se, nehlasoval]; SD má jen slovenského poslance
     assert v2["group_counts"] == {"EPP": [1, 0, 0, 0], "PFE": [0, 0, 0, 1], "SD": [0, 1, 0, 0]}
@@ -136,7 +136,7 @@ def test_group_counts_cover_all_countries(csv_dir, tmp_path):
 
 def test_index_lists_months_and_used_groups(csv_dir, tmp_path):
     out = tmp_path / "out"
-    fv.run(csv_dir, out, release="MOCK_TAG")
+    fv.run(csv_dir, out, release="MOCK_TAG", group_composition=False)
     index = json.loads((out / "index.json").read_text(encoding="utf-8"))
     assert index["months"] == [{"month": "2024-07", "votes": 1}, {"month": "2024-09", "votes": 2}]
     assert [g["code"] for g in index["groups"]] == ["EPP", "NI", "PFE", "SD"]  # GREEN_EFA nehlasovali
@@ -147,7 +147,7 @@ def test_index_lists_months_and_used_groups(csv_dir, tmp_path):
 @pytest.mark.parametrize("result", ["LAPSED", "WITHDRAWN"])
 def test_lapsed_and_withdrawn_are_valid(csv_dir, tmp_path, result):
     edit(csv_dir, "votes", ",REJECTED,", f",{result},")
-    months = fv.run(csv_dir, tmp_path / "out", release=None)
+    months = fv.run(csv_dir, tmp_path / "out", release=None, group_composition=False)
     assert {v["id"]: v["result"] for v in months["2024-09"]["votes"]}[3] == result
 
 

@@ -27,6 +27,7 @@ import requests
 from labels_cs import translate
 from benchmarks import compute_benchmarks, window_key
 from delegations import compute_delegations
+from group_countries import CompositionError, composition, iso3_to_iso2
 from vote_kinds import FINAL_KINDS, classify
 
 BASE_URL = "https://github.com/HowTheyVote/data/releases/latest/download"
@@ -34,6 +35,7 @@ TAG_URL = "https://github.com/HowTheyVote/data/releases/download/{tag}"
 HTV_VOTE_URL = "https://howtheyvote.eu/votes/{id}"
 TERM_START = "2024-07-16"
 COUNTRY = "CZE"
+COUNTRIES_CS = Path(__file__).resolve().parent.parent / "data" / "manual" / "countries_cs.json"
 
 POSITIONS = {"FOR", "AGAINST", "ABSTENTION", "DID_NOT_VOTE"}
 # Možné výsledky podle HowTheyVote (VoteResult): přijato, zamítnuto, propadlo, staženo.
@@ -177,7 +179,12 @@ def load_votes(csv_dir: Path, since: str = TERM_START) -> pd.DataFrame:
 
 
 def load_member_votes(
-    csv_dir: Path, vote_ids: set[int], country: str = COUNTRY, all_rows: list | None = None, country_counts: dict | None = None
+    csv_dir: Path,
+    vote_ids: set[int],
+    country: str = COUNTRY,
+    all_rows: list | None = None,
+    country_counts: dict | None = None,
+    day_rows: tuple[set[int], list] | None = None,
 ):
     """Načte member_votes po částech.
 
@@ -185,6 +192,8 @@ def load_member_votes(
     počty frakcí jsou přes všechny poslance EP. Když je all_rows seznam, přidá do něj kompaktní
     řádky všech poslanců (pro srovnání s celým EP, scripts/benchmarks.py). Když je country_counts slovník,
     naplní ho počty hlasů po státech {vote_id: {stát: [pro, proti, zdržel, nehlasoval]}} (scripts/delegations.py).
+    Když je day_rows (ids hlasování, seznam), přidá do seznamu řádky těchto hlasování se státem a frakcí
+    (složení frakcí podle zemí, scripts/group_countries.py).
     """
     path = csv_dir / "member_votes.csv.gz"
     if not path.exists():
@@ -206,6 +215,9 @@ def load_member_votes(
                 row[COUNT_ORDER.index(position)] += int(n)
         if all_rows is not None:
             all_rows.append(chunk[["vote_id", "member_id", "position", "group_code"]].copy())
+        if day_rows is not None:
+            sel = chunk[chunk["vote_id"].astype(int).isin(day_rows[0])]
+            day_rows[1].extend(zip(sel["vote_id"], sel["member_id"], sel["country_code"], sel["group_code"], strict=True))
         parts.append(chunk[chunk["country_code"] == country])
     mv = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame(columns=TABLES["member_votes"])
     if mv.duplicated(["vote_id", "member_id"]).any():
@@ -396,6 +408,32 @@ def mandate_windows(meps_path: Path, since: str = TERM_START) -> dict[str, tuple
     return windows
 
 
+def write_composition(votes: pd.DataFrame, day_rows: tuple[set[int], list], release: str | None, countries_path: Path, out: Path) -> dict:
+    """Složení frakcí podle zemí k poslednímu plenárnímu dni (group_countries.py) do data/group_countries.json."""
+    vote_totals = [
+        {
+            "id": int(r.id),
+            "timestamp": r.timestamp,
+            "total": int(r.count_for) + int(r.count_against) + int(r.count_abstention) + int(r.count_did_not_vote),
+        }
+        for r in votes.itertuples()
+        if int(r.id) in day_rows[0]
+    ]
+    try:
+        comp = composition(vote_totals, day_rows[1], iso3_to_iso2(json.loads(countries_path.read_text(encoding="utf-8"))))
+    except CompositionError as e:
+        raise FormatError(str(e)) from e
+    comp = {
+        "note": "Složení politických skupin podle zemí k poslednímu plenárnímu dni v datech: každý poslanec podle svého řádku "
+        "z posledního hlasování toho dne (i nehlasoval). Generuje scripts/fetch_votes.py (group_countries.py).",
+        "source": {"name": "HowTheyVote.eu", "url": "https://github.com/HowTheyVote/data", "license": "ODbL", "release": release},
+        **comp,
+    }
+    out.write_text(json.dumps(comp, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    print(f"složení frakcí k {comp['as_of']}: {comp['members']} poslanců, {len(comp['groups'])} skupin", file=sys.stderr)
+    return comp
+
+
 def run(
     csv_dir: Path,
     out_dir: Path,
@@ -403,12 +441,17 @@ def run(
     since: str = TERM_START,
     benchmarks_path: Path | None = None,
     delegations_path: Path | None = None,
+    countries_path: Path | None = None,
+    composition_path: Path | None = None,
+    group_composition: bool = True,
 ) -> dict[str, dict]:
     votes = load_votes(csv_dir, since)
     ids = set(votes["id"])
     all_rows: list = []
     country_counts: dict = {}
-    mv, group_counts = load_member_votes(csv_dir, ids, all_rows=all_rows, country_counts=country_counts)
+    last_day = votes["timestamp"].str[:10].max() if len(votes) else None
+    day_rows: tuple[set[int], list] = ({int(i) for i, t in zip(votes["id"], votes["timestamp"], strict=True) if t[:10] == last_day}, [])
+    mv, group_counts = load_member_votes(csv_dir, ids, all_rows=all_rows, country_counts=country_counts, day_rows=day_rows)
     topics = load_topics(csv_dir, ids)
     groups = read_table(csv_dir, "groups")
     months = build_months(votes, mv, topics, release, group_counts)
@@ -457,6 +500,10 @@ def run(
         json.dumps(deleg, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
     )
     write_index(months, groups, out_dir, release, read_table(csv_dir, "oeil_subjects"))
+    if group_composition:
+        write_composition(
+            votes, day_rows, release, countries_path or COUNTRIES_CS, composition_path or out_dir.parent / "group_countries.json"
+        )
     print(
         f"hlasování: {len(votes)} (hlavních {int(votes['is_main'].sum())}), "
         f"CZ pozic: {len(mv)}, poslanců: {mv['member_id'].nunique()}, měsíců: {len(months)}",

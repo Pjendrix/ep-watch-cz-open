@@ -1,0 +1,113 @@
+{
+ "note": "Ruční číselník: ISO 3166-1 alfa-2 → český název a kód alfa-3 (HowTheyVote country_code). Žádný strojový překlad. Používá fetch_votes.py (složení frakcí podle zemí) a fetch_group_chairs.py.",
+ "countries": {
+  "AT": {
+   "iso3": "AUT",
+   "cs": "Rakousko"
+  },
+  "BE": {
+   "iso3": "BEL",
+   "cs": "Belgie"
+  },
+  "BG": {
+   "iso3": "BGR",
+   "cs": "Bulharsko"
+  },
+  "CY": {
+   "iso3": "CYP",
+   "cs": "Kypr"
+  },
+  "CZ": {
+   "iso3": "CZE",
+   "cs": "Česko"
+  },
+  "DE": {
+   "iso3": "DEU",
+   "cs": "Německo"
+  },
+  "DK": {
+   "iso3": "DNK",
+   "cs": "Dánsko"
+  },
+  "EE": {
+   "iso3": "EST",
+   "cs": "Estonsko"
+  },
+  "ES": {
+   "iso3": "ESP",
+   "cs": "Španělsko"
+  },
+  "FI": {
+   "iso3": "FIN",
+   "cs": "Finsko"
+  },
+  "FR": {
+   "iso3": "FRA",
+   "cs": "Francie"
+  },
+  "GR": {
+   "iso3": "GRC",
+   "cs": "Řecko"
+  },
+  "HR": {
+   "iso3": "HRV",
+   "cs": "Chorvatsko"
+  },
+  "HU": {
+   "iso3": "HUN",
+   "cs": "Maďarsko"
+  },
+  "IE": {
+   "iso3": "IRL",
+   "cs": "Irsko"
+  },
+  "IT": {
+   "iso3": "ITA",
+   "cs": "Itálie"
+  },
+  "LT": {
+   "iso3": "LTU",
+   "cs": "Litva"
+  },
+  "LU": {
+   "iso3": "LUX",
+   "cs": "Lucembursko"
+  },
+  "LV": {
+   "iso3": "LVA",
+   "cs": "Lotyšsko"
+  },
+  "MT": {
+   "iso3": "MLT",
+   "cs": "Malta"
+  },
+  "NL": {
+   "iso3": "NLD",
+   "cs": "Nizozemsko"
+  },
+  "PL": {
+   "iso3": "POL",
+   "cs": "Polsko"
+  },
+  "PT": {
+   "iso3": "PRT",
+   "cs": "Portugalsko"
+  },
+  "RO": {
+   "iso3": "ROU",
+   "cs": "Rumunsko"
+  },
+  "SE": {
+   "iso3": "SWE",
+   "cs": "Švédsko"
+  },
+  "SI": {
+   "iso3": "SVN",
+   "cs": "Slovinsko"
+  },
+  "SK": {
+   "iso3": "SVK",
+   "cs": "Slovensko"
+  }
+ }
+}
