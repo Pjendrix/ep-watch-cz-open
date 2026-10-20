@@ -155,3 +155,85 @@ def card_items(cz: list[dict], meps_by_id: dict, parties: list[dict], groups: li
         it["positions"] = [x["position"] for x in it["members"]]
         out.append(it)
     return sorted(out, key=lambda r: (-len(r["members"]), r["label"].casefold()))
+
+
+ROLE_CS = {
+    "rapporteur": ("zpravodaj", "zpravodajka"),
+    "co": ("spoluzpravodaj", "spoluzpravodajka"),
+    "shadow": ("stínový zpravodaj", "stínová zpravodajka"),
+}
+
+
+def group_majority(row: list[int]) -> str | None:
+    """Většina frakce z [pro, proti, zdržel se, nehlasoval]: jednoznačně nejvíc hlasů pro / proti / zdržel se, jinak None."""
+    best = max(row[:3])
+    winners = [i for i, n in enumerate(row[:3]) if n == best]
+    return POSITIONS[winners[0]] if best > 0 and len(winners) == 1 else None
+
+
+def vote_detail(
+    v: dict,
+    cz: list[dict],
+    meps_by_id: dict,
+    parties: list[dict],
+    groups: list[dict],
+    roles: list[dict] | None = None,
+    summary: dict | None = None,
+    procedure: dict | None = None,
+) -> dict:
+    """Podklady 2. a 3. obrázku detailu karty hlasování (share.js): frakce v celém EP (group_counts), Češi, kteří hlasovali
+    jinak než většina jejich frakce (k datu hlasování, nezařazení se nepočítají, nehlasoval se nepočítá jako „jinak“),
+    česká stopa, AI shrnutí (jen když existuje, vote_summaries.json) a stav procedury (Příběh zákona). Nic se nedopočítává."""
+    by_id = {p["id"]: p for p in parties}
+    rows = sorted(v.get("group_counts", {}).items(), key=lambda x: (-sum(x[1]), x[0]))
+    out_groups = [
+        {
+            "code": code,
+            "label": group_label(code, groups),
+            "counts": row,
+            "cz": sum(1 for p in cz if p.get("group_code") == code),
+            "majority": group_majority(row),
+        }
+        for code, row in rows
+        if code != "NI"
+    ]
+    diverged = []
+    for p in cz:
+        code, row = p.get("group_code"), v.get("group_counts", {}).get(p.get("group_code") or "")
+        if not row or code == "NI" or p["position"] == "DID_NOT_VOTE":
+            continue
+        maj = group_majority(row)
+        if maj and p["position"] != maj:
+            m = meps_by_id[p["member_id"]]
+            party = by_id.get(p.get("national_party_id"))
+            diverged.append(
+                {
+                    "name": f"{m.get('given_name') or ''} {m.get('family_name') or m['name']}".strip(),
+                    "party": None if not party or party.get("independent") else party["short_label"],
+                    "group": group_label(code, groups),
+                    "position": p["position"],
+                    "majority": maj,
+                    "sortLabel": m.get("sort_label") or m["name"],
+                }
+            )
+    diverged.sort(key=lambda x: x["sortLabel"])
+    trace = []
+    for r in roles or []:
+        m = meps_by_id.get(r["mep_id"])
+        if not m or r["role"] not in ROLE_CS or any(t["id"] == m["id"] for t in trace):
+            continue
+        male, female = ROLE_CS[r["role"]]
+        trace.append(
+            {
+                "id": m["id"],
+                "name": f"{m.get('given_name') or ''} {m.get('family_name') or m['name']}".strip(),
+                "role": female if m.get("gender") == "FEMALE" else male if m.get("gender") == "MALE" else f"{male}/ka",
+            }
+        )
+    return {
+        "groups": out_groups,
+        "diverged": [{k: x[k] for k in ("name", "party", "group", "position", "majority")} for x in diverged],
+        "trace": [{k: x[k] for k in ("name", "role")} for x in trace],
+        "summary": {"text": summary["shrnuti"], "source": summary.get("source")} if summary and summary.get("shrnuti") else None,
+        "procedure": procedure,
+    }
