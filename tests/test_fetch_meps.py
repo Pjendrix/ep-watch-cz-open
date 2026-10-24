@@ -166,6 +166,61 @@ def test_client_honours_retry_after(monkeypatch):
     assert 7.0 in slept
 
 
+def test_client_splits_large_page_after_repeated_500(monkeypatch):
+    """Velká stránka opakovaně 500 → stejný rozsah po 10; malé stránky projdou, volající dostane celý výsledek."""
+    items = [{"identifier": str(i)} for i in range(25)]
+    calls = []
+
+    class S:
+        def get(self, url, params=None, timeout=None):
+            calls.append(dict(params))
+            off, lim = params["offset"], params["limit"]
+            if lim > fm.SMALL_PAGE:
+                return FakeResponse({}, 500)
+            if off >= len(items):
+                return FakeResponse(None, 204)
+            return FakeResponse({"data": items[off : off + lim], "@context": "MOCK"})
+
+    monkeypatch.setattr(fm.time, "sleep", lambda s: None)
+    client = fm.EPClient(session=S(), min_interval=0)
+    out = client.get("speeches", {"offset": 0, "limit": 100})
+    assert [x["identifier"] for x in out["data"]] == [str(i) for i in range(25)]
+    assert out["@context"] == "MOCK"
+    big = [c for c in calls if c["limit"] == 100]
+    assert len(big) == fm.SPLIT_AFTER
+    assert [c["offset"] for c in calls if c["limit"] <= fm.SMALL_PAGE] == [0, 10, 20]
+
+
+def test_client_small_pages_stop_at_exact_end(monkeypatch):
+    """Konec seznamu přesně na hranici malé stránky: EP vrátí 204, to je prázdná stránka, ne chyba."""
+    items = [{"identifier": str(i)} for i in range(20)]
+
+    class S:
+        def get(self, url, params=None, timeout=None):
+            off, lim = params["offset"], params["limit"]
+            if lim > fm.SMALL_PAGE:
+                return FakeResponse({}, 500)
+            if off >= len(items):
+                return FakeResponse(None, 204)
+            return FakeResponse({"data": items[off : off + lim]})
+
+    monkeypatch.setattr(fm.time, "sleep", lambda s: None)
+    out = fm.EPClient(session=S(), min_interval=0).get("speeches", {"offset": 0, "limit": 100})
+    assert len(out["data"]) == 20
+
+
+def test_client_does_not_split_small_or_unpaged_requests(monkeypatch):
+    """Detail dokumentu (bez limit) se nedělí: po 8 pokusech chyba s posledním stavem."""
+
+    class S:
+        def get(self, *a, **kw):
+            return FakeResponse({}, 500)
+
+    monkeypatch.setattr(fm.time, "sleep", lambda s: None)
+    with pytest.raises(RuntimeError, match="HTTP 500"):
+        fm.EPClient(session=S(), min_interval=0).get("plenary-documents/A-10-2026-0001")
+
+
 def test_client_retries_on_timeout_and_reports_last_error(monkeypatch):
     """Timeout nebo výpadek spojení se zkouší znovu; když se nepovede ani na osmý pokus, chyba to řekne."""
     import requests

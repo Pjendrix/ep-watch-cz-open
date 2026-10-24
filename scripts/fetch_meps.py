@@ -31,6 +31,9 @@ PROFILE_URL = "https://www.europarl.europa.eu/meps/cs/{id}"
 # EP API: max. 500 dotazů za 5 minut na endpoint. 0,7 s mezi dotazy = max. ~430.
 MIN_INTERVAL = 0.7
 TIMEOUT = 120  # sekund; detail dokumentu pléna trvá i desítky sekund
+# EP API při přetížení vrací 500 (OutOfMemory) hlavně u velkých stránek, stránka po 10 obvykle projde (24. 10. 2026).
+SMALL_PAGE = 10
+SPLIT_AFTER = 3  # po kolika 5xx za sebou se velká stránka stáhne po malých
 
 ROLE_MANDATE = "def/ep-roles/MEMBER_PARLIAMENT"
 CLS_GROUP = "def/ep-entities/EU_POLITICAL_GROUP"
@@ -82,7 +85,10 @@ class EPClient:
     def get(self, path: str, params: dict | None = None) -> dict:
         url = f"{API}/{path}"
         last = "bez odpovědi"
+        errors_5xx = 0
         for attempt in range(8):
+            if errors_5xx >= SPLIT_AFTER and int((params or {}).get("limit", 0)) > SMALL_PAGE:
+                return self._get_in_small_pages(path, params)
             wait = self._last + self.min_interval - time.monotonic()
             if wait > 0:
                 time.sleep(wait)
@@ -100,14 +106,31 @@ class EPClient:
                 time.sleep(retry_after(r) or 30 * (attempt + 1))
                 continue
             if r.status_code >= 500:
+                errors_5xx += 1
                 time.sleep(2 ** (attempt + 1))
                 continue
+            if r.status_code == 204:  # EP API: stránka za koncem seznamu
+                return {"data": []}
             r.raise_for_status()
             try:
                 return r.json()
             except ValueError as e:
                 raise FormatError(f"{url}: odpověď není JSON") from e
         raise RuntimeError(f"{url}: EP API opakovaně neodpovídá (naposledy {last})")
+
+    def _get_in_small_pages(self, path: str, params: dict) -> dict:
+        """Stejný rozsah (offset, limit) jako jeden dotaz, ale po stránkách SMALL_PAGE. Volající nic nepozná."""
+        offset, limit = int(params.get("offset", 0)), int(params["limit"])
+        data, first = [], None
+        for sub in range(offset, offset + limit, SMALL_PAGE):
+            size = min(SMALL_PAGE, offset + limit - sub)
+            payload = self.get(path, {**params, "offset": sub, "limit": size})
+            first = first or payload
+            batch = payload.get("data") or []
+            data += batch
+            if len(batch) < size:
+                break
+        return {**first, "data": data}
 
     def list_meps(self, term: int = TERM, country: str = COUNTRY, page: int = 50) -> list[dict]:
         out, offset = [], 0
