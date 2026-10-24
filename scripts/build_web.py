@@ -29,6 +29,7 @@ from pathlib import Path
 
 from compute_stats import CLOSE_MARGIN, POSITIONS, FormatError, active_positions, in_mandate, load_votes, require, topic_codes
 from activity import count_activity
+from duel import build_duel
 from attendance import count_presence
 from category_stats import category_stats
 from group_stats import build_group_stats
@@ -560,8 +561,8 @@ def party_reports(pid: str, meps: list[dict], own: dict | None) -> dict | None:
     Strana se bere k datu zprávy (období ve straně podle EP), bez pořadí a bez hodnocení. Bez own_work.json None."""
     if not own:
         return None
-    in_party = lambda m, d: bool(d) and any(
-        p["org_id"] == pid and p["start"] <= d and (not p.get("end") or d <= p["end"]) for p in m["parties"]
+    in_party = lambda m, d: (
+        bool(d) and any(p["org_id"] == pid and p["start"] <= d and (not p.get("end") or d <= p["end"]) for p in m["parties"])
     )
     reports, shadow = [], 0
     for m in meps:
@@ -839,26 +840,40 @@ def run(data_dir: Path, day: str) -> dict:
     if work is not None:
         write_json(data_dir / "work.json", work)
     profiles_dir = data_dir / "meps"
+    profiles = {}
     for m in meps:
-        write_json(
-            profiles_dir / f"{m['id']}.json",
-            build_profile(
-                m,
-                meps,
-                stats,
-                votes,
-                day,
-                votes_by_id,
-                own,
-                topic_labels,
-                bench,
-                {**activity[m["id"]], **activity_info} if activity_info else None,
-                {**presence[m["id"]], **presence_info} if presence_info else None,
-                amendments_for(amendments, m["id"]),
-            ),
+        profiles[m["id"]] = build_profile(
+            m,
+            meps,
+            stats,
+            votes,
+            day,
+            votes_by_id,
+            own,
+            topic_labels,
+            bench,
+            {**activity[m["id"]], **activity_info} if activity_info else None,
+            {**presence[m["id"]], **presence_info} if presence_info else None,
+            amendments_for(amendments, m["id"]),
         )
+        write_json(profiles_dir / f"{m['id']}.json", profiles[m["id"]])
     for m in meps:
         write_json(profiles_dir / f"{m['id']}_votes.json", mep_votes(m, votes), compact=True)
+    write_json(
+        data_dir / "duel.json",
+        build_duel(
+            meps,
+            profiles,
+            {m["id"]: mep_summary(m, day) for m in meps},
+            stats,
+            votes,
+            [int(i) for i in key["votes"]],
+            topic_labels,
+            lambda v: vote_summary(v, by_id),
+            day,
+        ),
+        compact=True,
+    )
     if "votes_analysis" in stats:
         write_json(data_dir / "decisive.json", build_decisive(stats, votes_by_id, by_id))
         write_json(data_dir / "splits.json", build_splits(stats, votes_by_id, by_id))
