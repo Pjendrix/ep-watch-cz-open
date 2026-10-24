@@ -133,3 +133,19 @@ def test_attendance_checked(tmp_path):
     assert any("prázdná" in p for p in problems) and not any("klesl" in p for p in problems)
     (new / "attendance.json").write_text(json.dumps({"days": [{"date": "2025-01-01", "attendees": 5}]}))
     assert any("klesl" in p for p in cd.check_attendance(prev, new))
+
+
+def test_amendments_must_not_drop(tmp_path):
+    prev, new = tmp_path / "prev", tmp_path / "new"
+    prev.mkdir(), new.mkdir()
+    doc = lambda docs, total, cos: {
+        "coverage": {"committee_docs": docs},
+        "meps": {"1": {"committee": {"total": total}, "plenary": {"cosigned": cos}}},
+    }  # noqa: E731
+    assert cd.check_amendments(prev, new) == []  # soubory chybí
+    (prev / "amendments.json").write_text(json.dumps(doc(10, 5, 2)))
+    (new / "amendments.json").write_text(json.dumps(doc(11, 6, 2)))
+    assert cd.check_amendments(prev, new) == []
+    (new / "amendments.json").write_text(json.dumps(doc(9, 4, 1)))
+    problems = cd.check_amendments(prev, new)
+    assert len(problems) == 3 and "klesl z 10 na 9" in problems[0]

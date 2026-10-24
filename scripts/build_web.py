@@ -312,6 +312,7 @@ def build_profile(
     bench: dict | None = None,
     activity: dict | None = None,
     presence: dict | None = None,
+    amendments: dict | None = None,
 ) -> dict:
     st = stats["meps"][str(mep["id"])]
     meps_by_id = {m["id"]: m for m in meps}
@@ -345,6 +346,7 @@ def build_profile(
         "topics": topic_rows(st.get("topics", {}), stats.get("topics", []), topic_labels),
         "activity": activity,
         "presence": presence,
+        "amendments": amendments,
         "own_work": None
         if own is None
         else {
@@ -483,6 +485,14 @@ def presence_by_mep(meps: list[dict], attendance: dict | None) -> dict[int, dict
     return {m["id"]: count_presence(attendance["days"], m["id"], m["mandates"]) for m in meps}
 
 
+def amendments_for(amendments: dict | None, mep_id: int) -> dict | None:
+    """PN poslance z data/amendments.json i se zdrojem a pokrytím (pro profil a přehled práce); None bez souboru nebo poslance."""
+    row = ((amendments or {}).get("meps") or {}).get(str(mep_id))
+    if not row:
+        return None
+    return {**row, "source": amendments["source"], "coverage": amendments["coverage"], "updated": amendments.get("updated")}
+
+
 def build_work(
     meps: list[dict],
     own: dict | None,
@@ -490,6 +500,7 @@ def build_work(
     stats: dict | None = None,
     activity: dict[int, dict] | None = None,
     presence: dict[int, dict] | None = None,
+    amendments: dict | None = None,
 ) -> dict | None:
     """Profil vlastní práce: počty z own_work.json (spočítal own_work.passed / roles / delegation_profile),
     docházka ze stats.json a funkce z meps.json, nic nového."""
@@ -511,6 +522,8 @@ def build_work(
                 "functions": functions(m, day),
                 **{k: (activity or {}).get(m["id"], {}).get(k) for k in ("speeches", "speeches_minutes", "written_statements")},
                 "presence": (presence or {}).get(m["id"]),
+                "amendments": (amendments_for(amendments, m["id"]) or {}).get("committee", {}).get("total"),
+                "amendments_cosigned": ((amendments_for(amendments, m["id"]) or {}).get("plenary") or {}).get("cosigned"),
             }
         )
     return {"source": own["source"], "updated": own["updated"], "complete": own["complete"], "meps": rows}
@@ -784,6 +797,10 @@ def run(data_dir: Path, day: str) -> dict:
     presence = presence_by_mep(meps, attendance)
     presence_info = {"source": attendance["source"], "updated": attendance.get("updated")} if attendance else None
     activity = activity_by_mep(meps, speeches)
+    amendments_path = data_dir / "amendments.json"
+    amendments = json.loads(amendments_path.read_text(encoding="utf-8")) if amendments_path.exists() else None
+    if amendments is not None:
+        require(amendments, ["meps", "source", "coverage"], "amendments.json")
     activity_info = {"source": speeches["source"], "updated": speeches.get("updated")} if speeches else None
     bench_path = data_dir / "benchmarks.json"
     bench = json.loads(bench_path.read_text(encoding="utf-8")) if bench_path.exists() else None
@@ -801,7 +818,7 @@ def run(data_dir: Path, day: str) -> dict:
         write_json(
             data_dir / "vote_roles.json", {"source": own["source"], "updated": own["updated"], "votes": build_vote_roles(own)}, compact=True
         )
-    work = build_work(meps, own, day, stats, activity, presence)
+    work = build_work(meps, own, day, stats, activity, presence, amendments)
     if own is not None:
         info = {m["id"]: mep_summary(m, day) for m in meps}
         hub = build_work_hub(own, meps, info, speeches, attendance)
@@ -813,6 +830,8 @@ def run(data_dir: Path, day: str) -> dict:
         write_json(data_dir / "work_hub.json", hub)
     if work is not None and activity_info:
         work["activity_source"] = activity_info
+    if work is not None and amendments is not None:
+        work["amendments_source"] = {"source": amendments["source"], "coverage": amendments["coverage"]}
     if work is not None and presence_info:
         work["presence_source"] = presence_info
     if work is not None and bench is not None:
@@ -835,6 +854,7 @@ def run(data_dir: Path, day: str) -> dict:
                 bench,
                 {**activity[m["id"]], **activity_info} if activity_info else None,
                 {**presence[m["id"]], **presence_info} if presence_info else None,
+                amendments_for(amendments, m["id"]),
             ),
         )
     for m in meps:
