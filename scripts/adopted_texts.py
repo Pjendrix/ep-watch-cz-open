@@ -222,6 +222,13 @@ def fetch_text(ta: str, cache_dir: Path, session=None) -> str | None:
     return text
 
 
+def write_atomic(path: Path, doc: dict) -> None:
+    """Zápis přes dočasný soubor: běh ukončený časovým limitem uprostřed zápisu nenechá rozbitý JSON."""
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(doc, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    tmp.replace(path)
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--data-dir", type=Path, default=ROOT / "data")
@@ -238,13 +245,13 @@ def main(argv=None) -> int:
         today = dt.date.today().isoformat()
 
         def save(found, unmatched):  # průběžně: první běh má stovky dotazů, výpadek nesmí zahodit hotové
-            out_path.write_text(json.dumps(result(found, unmatched, today), ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+            write_atomic(out_path, result(found, unmatched, today))
 
         out = update(votes, old, EPClient(), today, log=lambda m: print(m, file=sys.stderr), checkpoint=save)
     except (FormatError, StatsFormatError, ApiFormatError) as e:
         print(f"CHYBA FORMÁTU: {e}", file=sys.stderr)
         return 2
-    out_path.write_text(json.dumps(out, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    write_atomic(out_path, out)
     return 0
 
 
