@@ -30,6 +30,7 @@ from pathlib import Path
 from compute_stats import CLOSE_MARGIN, POSITIONS, FormatError, active_positions, in_mandate, load_votes, require, topic_codes
 from activity import count_activity
 from duel import build_duel
+from preliminary import htv_last_day, pending_days
 from attendance import count_presence
 from category_stats import category_stats
 from group_stats import build_group_stats
@@ -750,7 +751,7 @@ def mep_votes(mep: dict, votes: list[dict]) -> dict:
 STALE_DAYS = 14
 
 
-def build_freshness(release: str | None, agenda: dict | None) -> dict:
+def build_freshness(release: str | None, agenda: dict | None, preliminary: list[str] | None = None) -> dict:
     """Podklad pro pruh „data mohou být neaktuální“ (rozhodnutí autora 16. 10. 2026): datum exportu a plenární dny po něm.
     Prohlížeč pruh ukáže, když je export starší než STALE_DAYS dní a od té doby už nějaké zasedání proběhlo
     (bez zasedání nová hlasování být nemohou, stará data jsou pak aktuální)."""
@@ -761,6 +762,8 @@ def build_freshness(release: str | None, agenda: dict | None) -> dict:
         "release": day,
         "stale_days": STALE_DAYS,
         "sittings_after": sorted(d for d in sittings if day and d > day),
+        # dny s předběžnými výsledky, které HowTheyVote ještě nemá (preliminary.py); věta o zdroji pak odkáže na úvod
+        "preliminary": preliminary or [],
     }
 
 
@@ -955,6 +958,7 @@ def run(data_dir: Path, day: str) -> dict:
         build_freshness(
             stats["sources"].get("votes", {}).get("release"),
             json.loads(agenda_path.read_text(encoding="utf-8")) if agenda_path.exists() else None,
+            pending_days(data_dir / "preliminary", htv_last_day(data_dir / "votes")),
         ),
     )
     return {"profiles": len(meps), "votes": len(votes)}

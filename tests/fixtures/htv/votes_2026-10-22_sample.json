@@ -1,0 +1,1138 @@
+{
+ "votes": [
+  {
+   "id": 199569,
+   "date": "2026-10-22",
+   "reference": "C10-0258/2026",
+   "is_main": false,
+   "result": "ADOPTED",
+   "counts": {
+    "for": 287,
+    "against": 268,
+    "abstention": 16,
+    "did_not_vote": 149
+   },
+   "cz_positions": [
+    {
+     "member_id": 23699,
+     "position": "FOR",
+     "group_code": "NI",
+     "national_party_id": 6769,
+     "national_party": "KSČM"
+    },
+    {
+     "member_id": 124701,
+     "position": "ABSTENTION",
+     "group_code": "EPP",
+     "national_party_id": 6793,
+     "national_party": "TOP09/STAN"
+    },
+    {
+     "member_id": 124713,
+     "position": "DID_NOT_VOTE",
+     "group_code": "EPP",
+     "national_party_id": 6770,
+     "national_party": "KDU-ČSL"
+    },
+    {
+     "member_id": 197528,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 197537,
+     "position": "FOR",
+     "group_code": "ECR",
+     "national_party_id": 6768,
+     "national_party": "ODS"
+    },
+    {
+     "member_id": 197549,
+     "position": "AGAINST",
+     "group_code": "GREEN_EFA",
+     "national_party_id": 6862,
+     "national_party": "PIR"
+    },
+    {
+     "member_id": 197552,
+     "position": "FOR",
+     "group_code": "ECR",
+     "national_party_id": 6768,
+     "national_party": "ODS"
+    },
+    {
+     "member_id": 197556,
+     "position": "DID_NOT_VOTE",
+     "group_code": "ESN",
+     "national_party_id": 6864,
+     "national_party": "SPD"
+    },
+    {
+     "member_id": 220840,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 256840,
+     "position": "FOR",
+     "group_code": "EPP",
+     "national_party_id": 6835,
+     "national_party": "STAN"
+    },
+    {
+     "member_id": 256843,
+     "position": "DID_NOT_VOTE",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 256844,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 256845,
+     "position": "FOR",
+     "group_code": "ECR",
+     "national_party_id": 6768,
+     "national_party": "ODS"
+    },
+    {
+     "member_id": 256846,
+     "position": "ABSTENTION",
+     "group_code": "EPP",
+     "national_party_id": 6793,
+     "national_party": "TOP09/STAN"
+    },
+    {
+     "member_id": 256847,
+     "position": "FOR",
+     "group_code": "EPP",
+     "national_party_id": 6835,
+     "national_party": "STAN"
+    },
+    {
+     "member_id": 256851,
+     "position": "FOR",
+     "group_code": "NI",
+     "national_party_id": 6843,
+     "national_party": "Ind."
+    },
+    {
+     "member_id": 256852,
+     "position": "DID_NOT_VOTE",
+     "group_code": "ECR",
+     "national_party_id": 6843,
+     "national_party": "Ind."
+    },
+    {
+     "member_id": 256853,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 261038,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 270261,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 272024,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 7034,
+     "national_party": "AUTO"
+    }
+   ]
+  },
+  {
+   "id": 198430,
+   "date": "2026-10-22",
+   "reference": "A10-0104/2026",
+   "is_main": true,
+   "result": "ADOPTED",
+   "counts": {
+    "for": 477,
+    "against": 59,
+    "abstention": 41,
+    "did_not_vote": 143
+   },
+   "cz_positions": [
+    {
+     "member_id": 23699,
+     "position": "FOR",
+     "group_code": "NI",
+     "national_party_id": 6769,
+     "national_party": "KSČM"
+    },
+    {
+     "member_id": 124701,
+     "position": "FOR",
+     "group_code": "EPP",
+     "national_party_id": 6793,
+     "national_party": "TOP09/STAN"
+    },
+    {
+     "member_id": 124713,
+     "position": "DID_NOT_VOTE",
+     "group_code": "EPP",
+     "national_party_id": 6770,
+     "national_party": "KDU-ČSL"
+    },
+    {
+     "member_id": 197528,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 197537,
+     "position": "FOR",
+     "group_code": "ECR",
+     "national_party_id": 6768,
+     "national_party": "ODS"
+    },
+    {
+     "member_id": 197549,
+     "position": "FOR",
+     "group_code": "GREEN_EFA",
+     "national_party_id": 6862,
+     "national_party": "PIR"
+    },
+    {
+     "member_id": 197552,
+     "position": "FOR",
+     "group_code": "ECR",
+     "national_party_id": 6768,
+     "national_party": "ODS"
+    },
+    {
+     "member_id": 197556,
+     "position": "DID_NOT_VOTE",
+     "group_code": "ESN",
+     "national_party_id": 6864,
+     "national_party": "SPD"
+    },
+    {
+     "member_id": 220840,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 256840,
+     "position": "FOR",
+     "group_code": "EPP",
+     "national_party_id": 6835,
+     "national_party": "STAN"
+    },
+    {
+     "member_id": 256843,
+     "position": "DID_NOT_VOTE",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 256844,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 256845,
+     "position": "FOR",
+     "group_code": "ECR",
+     "national_party_id": 6768,
+     "national_party": "ODS"
+    },
+    {
+     "member_id": 256846,
+     "position": "FOR",
+     "group_code": "EPP",
+     "national_party_id": 6793,
+     "national_party": "TOP09/STAN"
+    },
+    {
+     "member_id": 256847,
+     "position": "FOR",
+     "group_code": "EPP",
+     "national_party_id": 6835,
+     "national_party": "STAN"
+    },
+    {
+     "member_id": 256851,
+     "position": "FOR",
+     "group_code": "NI",
+     "national_party_id": 6843,
+     "national_party": "Ind."
+    },
+    {
+     "member_id": 256852,
+     "position": "FOR",
+     "group_code": "ECR",
+     "national_party_id": 6843,
+     "national_party": "Ind."
+    },
+    {
+     "member_id": 256853,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 261038,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 270261,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 272024,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 7034,
+     "national_party": "AUTO"
+    }
+   ]
+  },
+  {
+   "id": 199560,
+   "date": "2026-10-22",
+   "reference": "A10-0276/2026",
+   "is_main": true,
+   "result": "REJECTED",
+   "counts": {
+    "for": 94,
+    "against": 482,
+    "abstention": 1,
+    "did_not_vote": 143
+   },
+   "cz_positions": [
+    {
+     "member_id": 23699,
+     "position": "AGAINST",
+     "group_code": "NI",
+     "national_party_id": 6769,
+     "national_party": "KSČM"
+    },
+    {
+     "member_id": 124701,
+     "position": "AGAINST",
+     "group_code": "EPP",
+     "national_party_id": 6793,
+     "national_party": "TOP09/STAN"
+    },
+    {
+     "member_id": 124713,
+     "position": "DID_NOT_VOTE",
+     "group_code": "EPP",
+     "national_party_id": 6770,
+     "national_party": "KDU-ČSL"
+    },
+    {
+     "member_id": 197528,
+     "position": "AGAINST",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 197537,
+     "position": "AGAINST",
+     "group_code": "ECR",
+     "national_party_id": 6768,
+     "national_party": "ODS"
+    },
+    {
+     "member_id": 197549,
+     "position": "FOR",
+     "group_code": "GREEN_EFA",
+     "national_party_id": 6862,
+     "national_party": "PIR"
+    },
+    {
+     "member_id": 197552,
+     "position": "AGAINST",
+     "group_code": "ECR",
+     "national_party_id": 6768,
+     "national_party": "ODS"
+    },
+    {
+     "member_id": 197556,
+     "position": "DID_NOT_VOTE",
+     "group_code": "ESN",
+     "national_party_id": 6864,
+     "national_party": "SPD"
+    },
+    {
+     "member_id": 220840,
+     "position": "AGAINST",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 256840,
+     "position": "AGAINST",
+     "group_code": "EPP",
+     "national_party_id": 6835,
+     "national_party": "STAN"
+    },
+    {
+     "member_id": 256843,
+     "position": "DID_NOT_VOTE",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 256844,
+     "position": "AGAINST",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 256845,
+     "position": "AGAINST",
+     "group_code": "ECR",
+     "national_party_id": 6768,
+     "national_party": "ODS"
+    },
+    {
+     "member_id": 256846,
+     "position": "AGAINST",
+     "group_code": "EPP",
+     "national_party_id": 6793,
+     "national_party": "TOP09/STAN"
+    },
+    {
+     "member_id": 256847,
+     "position": "AGAINST",
+     "group_code": "EPP",
+     "national_party_id": 6835,
+     "national_party": "STAN"
+    },
+    {
+     "member_id": 256851,
+     "position": "AGAINST",
+     "group_code": "NI",
+     "national_party_id": 6843,
+     "national_party": "Ind."
+    },
+    {
+     "member_id": 256852,
+     "position": "AGAINST",
+     "group_code": "ECR",
+     "national_party_id": 6843,
+     "national_party": "Ind."
+    },
+    {
+     "member_id": 256853,
+     "position": "AGAINST",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 261038,
+     "position": "AGAINST",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 270261,
+     "position": "AGAINST",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 272024,
+     "position": "AGAINST",
+     "group_code": "PFE",
+     "national_party_id": 7034,
+     "national_party": "AUTO"
+    }
+   ]
+  },
+  {
+   "id": 199564,
+   "date": "2026-10-22",
+   "reference": "A10-0276/2026",
+   "is_main": false,
+   "result": "REJECTED",
+   "counts": {
+    "for": 171,
+    "against": 404,
+    "abstention": 4,
+    "did_not_vote": 141
+   },
+   "cz_positions": [
+    {
+     "member_id": 23699,
+     "position": "FOR",
+     "group_code": "NI",
+     "national_party_id": 6769,
+     "national_party": "KSČM"
+    },
+    {
+     "member_id": 124701,
+     "position": "AGAINST",
+     "group_code": "EPP",
+     "national_party_id": 6793,
+     "national_party": "TOP09/STAN"
+    },
+    {
+     "member_id": 124713,
+     "position": "DID_NOT_VOTE",
+     "group_code": "EPP",
+     "national_party_id": 6770,
+     "national_party": "KDU-ČSL"
+    },
+    {
+     "member_id": 197528,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 197537,
+     "position": "FOR",
+     "group_code": "ECR",
+     "national_party_id": 6768,
+     "national_party": "ODS"
+    },
+    {
+     "member_id": 197549,
+     "position": "AGAINST",
+     "group_code": "GREEN_EFA",
+     "national_party_id": 6862,
+     "national_party": "PIR"
+    },
+    {
+     "member_id": 197552,
+     "position": "FOR",
+     "group_code": "ECR",
+     "national_party_id": 6768,
+     "national_party": "ODS"
+    },
+    {
+     "member_id": 197556,
+     "position": "DID_NOT_VOTE",
+     "group_code": "ESN",
+     "national_party_id": 6864,
+     "national_party": "SPD"
+    },
+    {
+     "member_id": 220840,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 256840,
+     "position": "AGAINST",
+     "group_code": "EPP",
+     "national_party_id": 6835,
+     "national_party": "STAN"
+    },
+    {
+     "member_id": 256843,
+     "position": "DID_NOT_VOTE",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 256844,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 256845,
+     "position": "FOR",
+     "group_code": "ECR",
+     "national_party_id": 6768,
+     "national_party": "ODS"
+    },
+    {
+     "member_id": 256846,
+     "position": "AGAINST",
+     "group_code": "EPP",
+     "national_party_id": 6793,
+     "national_party": "TOP09/STAN"
+    },
+    {
+     "member_id": 256847,
+     "position": "AGAINST",
+     "group_code": "EPP",
+     "national_party_id": 6835,
+     "national_party": "STAN"
+    },
+    {
+     "member_id": 256851,
+     "position": "FOR",
+     "group_code": "NI",
+     "national_party_id": 6843,
+     "national_party": "Ind."
+    },
+    {
+     "member_id": 256852,
+     "position": "FOR",
+     "group_code": "ECR",
+     "national_party_id": 6843,
+     "national_party": "Ind."
+    },
+    {
+     "member_id": 256853,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 261038,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 270261,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 272024,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 7034,
+     "national_party": "AUTO"
+    }
+   ]
+  },
+  {
+   "id": 199470,
+   "date": "2026-10-22",
+   "reference": "A10-0276/2026",
+   "is_main": true,
+   "result": "ADOPTED",
+   "counts": {
+    "for": 474,
+    "against": 82,
+    "abstention": 28,
+    "did_not_vote": 136
+   },
+   "cz_positions": [
+    {
+     "member_id": 23699,
+     "position": "FOR",
+     "group_code": "NI",
+     "national_party_id": 6769,
+     "national_party": "KSČM"
+    },
+    {
+     "member_id": 124701,
+     "position": "FOR",
+     "group_code": "EPP",
+     "national_party_id": 6793,
+     "national_party": "TOP09/STAN"
+    },
+    {
+     "member_id": 124713,
+     "position": "DID_NOT_VOTE",
+     "group_code": "EPP",
+     "national_party_id": 6770,
+     "national_party": "KDU-ČSL"
+    },
+    {
+     "member_id": 197528,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 197537,
+     "position": "FOR",
+     "group_code": "ECR",
+     "national_party_id": 6768,
+     "national_party": "ODS"
+    },
+    {
+     "member_id": 197549,
+     "position": "AGAINST",
+     "group_code": "GREEN_EFA",
+     "national_party_id": 6862,
+     "national_party": "PIR"
+    },
+    {
+     "member_id": 197552,
+     "position": "FOR",
+     "group_code": "ECR",
+     "national_party_id": 6768,
+     "national_party": "ODS"
+    },
+    {
+     "member_id": 197556,
+     "position": "DID_NOT_VOTE",
+     "group_code": "ESN",
+     "national_party_id": 6864,
+     "national_party": "SPD"
+    },
+    {
+     "member_id": 220840,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 256840,
+     "position": "FOR",
+     "group_code": "EPP",
+     "national_party_id": 6835,
+     "national_party": "STAN"
+    },
+    {
+     "member_id": 256843,
+     "position": "DID_NOT_VOTE",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 256844,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 256845,
+     "position": "FOR",
+     "group_code": "ECR",
+     "national_party_id": 6768,
+     "national_party": "ODS"
+    },
+    {
+     "member_id": 256846,
+     "position": "FOR",
+     "group_code": "EPP",
+     "national_party_id": 6793,
+     "national_party": "TOP09/STAN"
+    },
+    {
+     "member_id": 256847,
+     "position": "FOR",
+     "group_code": "EPP",
+     "national_party_id": 6835,
+     "national_party": "STAN"
+    },
+    {
+     "member_id": 256851,
+     "position": "FOR",
+     "group_code": "NI",
+     "national_party_id": 6843,
+     "national_party": "Ind."
+    },
+    {
+     "member_id": 256852,
+     "position": "FOR",
+     "group_code": "ECR",
+     "national_party_id": 6843,
+     "national_party": "Ind."
+    },
+    {
+     "member_id": 256853,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 261038,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 270261,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 272024,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 7034,
+     "national_party": "AUTO"
+    }
+   ]
+  },
+  {
+   "id": 199517,
+   "date": "2026-10-22",
+   "reference": "RC-B10-0476/2026",
+   "is_main": true,
+   "result": "ADOPTED",
+   "counts": {
+    "for": 432,
+    "against": 52,
+    "abstention": 88,
+    "did_not_vote": 148
+   },
+   "cz_positions": [
+    {
+     "member_id": 23699,
+     "position": "AGAINST",
+     "group_code": "NI",
+     "national_party_id": 6769,
+     "national_party": "KSČM"
+    },
+    {
+     "member_id": 124701,
+     "position": "FOR",
+     "group_code": "EPP",
+     "national_party_id": 6793,
+     "national_party": "TOP09/STAN"
+    },
+    {
+     "member_id": 124713,
+     "position": "DID_NOT_VOTE",
+     "group_code": "EPP",
+     "national_party_id": 6770,
+     "national_party": "KDU-ČSL"
+    },
+    {
+     "member_id": 197528,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 197537,
+     "position": "FOR",
+     "group_code": "ECR",
+     "national_party_id": 6768,
+     "national_party": "ODS"
+    },
+    {
+     "member_id": 197549,
+     "position": "FOR",
+     "group_code": "GREEN_EFA",
+     "national_party_id": 6862,
+     "national_party": "PIR"
+    },
+    {
+     "member_id": 197552,
+     "position": "FOR",
+     "group_code": "ECR",
+     "national_party_id": 6768,
+     "national_party": "ODS"
+    },
+    {
+     "member_id": 197556,
+     "position": "DID_NOT_VOTE",
+     "group_code": "ESN",
+     "national_party_id": 6864,
+     "national_party": "SPD"
+    },
+    {
+     "member_id": 220840,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 256840,
+     "position": "FOR",
+     "group_code": "EPP",
+     "national_party_id": 6835,
+     "national_party": "STAN"
+    },
+    {
+     "member_id": 256843,
+     "position": "DID_NOT_VOTE",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 256844,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 256845,
+     "position": "FOR",
+     "group_code": "ECR",
+     "national_party_id": 6768,
+     "national_party": "ODS"
+    },
+    {
+     "member_id": 256846,
+     "position": "FOR",
+     "group_code": "EPP",
+     "national_party_id": 6793,
+     "national_party": "TOP09/STAN"
+    },
+    {
+     "member_id": 256847,
+     "position": "FOR",
+     "group_code": "EPP",
+     "national_party_id": 6835,
+     "national_party": "STAN"
+    },
+    {
+     "member_id": 256851,
+     "position": "AGAINST",
+     "group_code": "NI",
+     "national_party_id": 6843,
+     "national_party": "Ind."
+    },
+    {
+     "member_id": 256852,
+     "position": "FOR",
+     "group_code": "ECR",
+     "national_party_id": 6843,
+     "national_party": "Ind."
+    },
+    {
+     "member_id": 256853,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 261038,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 270261,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 272024,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 7034,
+     "national_party": "AUTO"
+    }
+   ]
+  },
+  {
+   "id": 199482,
+   "date": "2026-10-22",
+   "reference": "RC-B10-0482/2026",
+   "is_main": false,
+   "result": "ADOPTED",
+   "counts": {
+    "for": 291,
+    "against": 271,
+    "abstention": 8,
+    "did_not_vote": 150
+   },
+   "cz_positions": [
+    {
+     "member_id": 23699,
+     "position": "DID_NOT_VOTE",
+     "group_code": "NI",
+     "national_party_id": 6769,
+     "national_party": "KSČM"
+    },
+    {
+     "member_id": 124701,
+     "position": "FOR",
+     "group_code": "EPP",
+     "national_party_id": 6793,
+     "national_party": "TOP09/STAN"
+    },
+    {
+     "member_id": 124713,
+     "position": "DID_NOT_VOTE",
+     "group_code": "EPP",
+     "national_party_id": 6770,
+     "national_party": "KDU-ČSL"
+    },
+    {
+     "member_id": 197528,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 197537,
+     "position": "FOR",
+     "group_code": "ECR",
+     "national_party_id": 6768,
+     "national_party": "ODS"
+    },
+    {
+     "member_id": 197549,
+     "position": "AGAINST",
+     "group_code": "GREEN_EFA",
+     "national_party_id": 6862,
+     "national_party": "PIR"
+    },
+    {
+     "member_id": 197552,
+     "position": "FOR",
+     "group_code": "ECR",
+     "national_party_id": 6768,
+     "national_party": "ODS"
+    },
+    {
+     "member_id": 197556,
+     "position": "DID_NOT_VOTE",
+     "group_code": "ESN",
+     "national_party_id": 6864,
+     "national_party": "SPD"
+    },
+    {
+     "member_id": 220840,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 256840,
+     "position": "AGAINST",
+     "group_code": "EPP",
+     "national_party_id": 6835,
+     "national_party": "STAN"
+    },
+    {
+     "member_id": 256843,
+     "position": "DID_NOT_VOTE",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 256844,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 256845,
+     "position": "FOR",
+     "group_code": "ECR",
+     "national_party_id": 6768,
+     "national_party": "ODS"
+    },
+    {
+     "member_id": 256846,
+     "position": "FOR",
+     "group_code": "EPP",
+     "national_party_id": 6793,
+     "national_party": "TOP09/STAN"
+    },
+    {
+     "member_id": 256847,
+     "position": "FOR",
+     "group_code": "EPP",
+     "national_party_id": 6835,
+     "national_party": "STAN"
+    },
+    {
+     "member_id": 256851,
+     "position": "ABSTENTION",
+     "group_code": "NI",
+     "national_party_id": 6843,
+     "national_party": "Ind."
+    },
+    {
+     "member_id": 256852,
+     "position": "FOR",
+     "group_code": "ECR",
+     "national_party_id": 6843,
+     "national_party": "Ind."
+    },
+    {
+     "member_id": 256853,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 261038,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 270261,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 6794,
+     "national_party": "ANO 2011"
+    },
+    {
+     "member_id": 272024,
+     "position": "FOR",
+     "group_code": "PFE",
+     "national_party_id": 7034,
+     "national_party": "AUTO"
+    }
+   ]
+  }
+ ]
+}

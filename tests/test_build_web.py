@@ -347,6 +347,7 @@ def test_freshness():
     assert f["release"] == "2026-10-10" and f["sittings_after"] == ["2026-10-19", "2026-11-11"]
     assert bw.build_freshness(None, agenda)["sittings_after"] == []
     assert bw.build_freshness("2026-10-10", None)["sittings_after"] == []
+    assert f["preliminary"] == [] and bw.build_freshness("2026-10-10", agenda, ["2026-10-19"])["preliminary"] == ["2026-10-19"]
 
 
 def test_party_reports_by_party_at_report_date():
