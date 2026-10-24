@@ -26,6 +26,7 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from ep_groups import majority_counts
 from vote_kinds import is_final, kind_of
 
 POSITIONS = ["FOR", "AGAINST", "ABSTENTION", "DID_NOT_VOTE"]
@@ -228,7 +229,7 @@ def add_vote(metrics: dict, vote: dict, pos: dict, others: list[str]) -> None:
         metrics["attendance_main"][0] += voted
     if not voted:
         return
-    gm = group_majority(vote["group_counts"], pos["group_code"])
+    gm = group_majority(majority_counts(vote), pos["group_code"])
     if gm is not None:
         metrics["group_loyalty"][1] += 1
         metrics["group_loyalty"][0] += position == gm
@@ -247,8 +248,9 @@ def add_vote(metrics: dict, vote: dict, pos: dict, others: list[str]) -> None:
         metrics[k][1] += 1
         metrics[k][0] += agree
     group = pos["group_code"]
-    if group not in NO_GROUP and group in vote["group_counts"]:
-        g_for, g_against = vote["group_counts"][group][:2]
+    gc = majority_counts(vote)
+    if group not in NO_GROUP and group in gc:
+        g_for, g_against = gc[group][:2]
         g_agree = g_for if vote["result"] == "ADOPTED" else g_against
         for k in ["group_outcome"] + (["group_outcome_main"] if is_final(vote) else []):
             metrics[k][1] += g_for + g_against
@@ -304,7 +306,7 @@ def compute(meps: list[dict], votes: list[dict], topics: list[str] | None = None
             add_vote(monthly[i].setdefault(month, empty_metrics()), vote, p, others)
             for t in vote_topics:
                 add_vote(by_topic[i][t], vote, p, others)
-            gm = group_majority(vote["group_counts"], p["group_code"])
+            gm = group_majority(majority_counts(vote), p["group_code"])
             if p["position"] in VOTED and gm is not None and p["position"] != gm:
                 pm = party_majority(p, active)
                 against[i].append(
@@ -701,6 +703,12 @@ def load_votes(votes_dir: Path) -> tuple[dict, list[dict]]:
     from adopted_texts import apply as apply_adopted
 
     apply_adopted(votes, votes_dir.parent)
+    # frakce Čechů k datu hlasování podle EP Open Data (ep_groups.py), HowTheyVote jen jako záloha
+    meps_path = votes_dir.parent / "meps.json"
+    if meps_path.exists():
+        import ep_groups
+
+        ep_groups.apply(votes, json.loads(meps_path.read_text(encoding="utf-8")).get("meps", []))
     return index, votes
 
 
@@ -757,8 +765,17 @@ def run(data_dir: Path, assets: Path) -> dict:
 
     apply_party_labels(meps, data_dir / "manual" / "party_labels.json")
     topics = top_topics(votes)
+    from ep_groups import conflicts as group_conflicts
+
+    conflicts = group_conflicts(votes)
+    for c in conflicts:
+        print(
+            f"VAROVÁNÍ: frakce poslance {c['member_id']} {c['from']} – {c['to']}: HowTheyVote {c['htv']}, EP {c['ep']} "
+            f"({c['votes']} hlasování); počítá se podle EP",
+            file=sys.stderr,
+        )
     stats = {
-        "sources": {"votes": index["source"], "meps": meps_doc["source"]},
+        "sources": {"votes": index["source"], "meps": meps_doc["source"], "group_conflicts": conflicts},
         "period": {"from": min(v["date"] for v in votes), "to": max(v["date"] for v in votes)} if votes else None,
         "votes_total": len(votes),
         "definitions": DEFINITIONS,

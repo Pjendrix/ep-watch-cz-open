@@ -5,6 +5,8 @@ Strana a frakce se berou k datu hlasování (cz_positions). Nic se tu nepočít�
 
 from __future__ import annotations
 
+from ep_groups import majority_counts
+
 POSITION_LABEL = {"FOR": "pro", "AGAINST": "proti", "ABSTENTION": "zdržel/a se", "DID_NOT_VOTE": "nehlasoval/a"}
 POSITIONS = ["FOR", "AGAINST", "ABSTENTION", "DID_NOT_VOTE"]
 SHORT_LABEL = {"FOR": "pro", "AGAINST": "proti", "ABSTENTION": "zdrž.", "DID_NOT_VOTE": "nehl."}
@@ -199,7 +201,7 @@ def vote_detail(
     ]
     diverged = []
     for p in cz:
-        code, row = p.get("group_code"), v.get("group_counts", {}).get(p.get("group_code") or "")
+        code, row = p.get("group_code"), (majority_counts(v) if "group_counts" in v else {}).get(p.get("group_code") or "")
         if not row or code == "NI" or p["position"] == "DID_NOT_VOTE":
             continue
         maj = group_majority(row)

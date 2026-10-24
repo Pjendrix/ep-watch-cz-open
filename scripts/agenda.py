@@ -12,9 +12,30 @@ pak s legislativním návrhem (dokument C), pak podle pořadí v programu; nejv�
 from __future__ import annotations
 
 import re
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 PICKS = 3
 ROLE_CS = {"rapporteur": "zpravodaj/ka", "co": "spoluzpravodaj/ka", "shadow": "stínový/á zpravodaj/ka"}
+
+
+def group_sessions(days: list[str], max_gap: int = 2) -> list[list[str]]:
+    """Plenární dny po sobě (mezera nejvýš max_gap dny) = jedno zasedání (kalendář z fetch_agenda.py)."""
+    import datetime as dt
+
+    out: list[list[str]] = []
+    for d in sorted(days):
+        if out and (dt.date.fromisoformat(d) - dt.date.fromisoformat(out[-1][-1])).days <= max_gap:
+            out[-1].append(d)
+        else:
+            out.append([d])
+    return out
+
+
+def following_block(agenda: dict | None, after: str) -> dict | None:
+    """První zasedání z kalendáře (agenda.json → sittings), které začíná po daném dni; jinak uložené pole following."""
+    s = next((x for x in group_sessions((agenda or {}).get("sittings") or []) if x[0] > after), None)
+    return {"from": s[0], "to": s[-1], "days": s} if s else (agenda or {}).get("following")
 
 
 def doc_key(ref: str | None) -> str | None:
@@ -69,6 +90,32 @@ def agenda_view(agenda: dict | None, own_work: dict | None, names: dict[int, str
         "votes": len(items),
         "items": items,
         "picks": [x["id"] for x in picks],
+        "status": nxt.get("status"),
+        "following": following_block(agenda, nxt["to"]),
         "fetched": (agenda or {}).get("fetched"),
         "source": (agenda or {}).get("source"),
     }
+
+
+def effective(view: dict | None, today: str) -> dict | None:
+    """Zasedání k zobrazení k danému dni (úkol 3, 24. 10. 2026). Stránky se nepřestavují denně a program se nemusí stáhnout
+    (výpadek API), proto: skončil-li blok z programu, vezme se další blok z kalendáře (following, bez programu); bez něj None.
+    status: „current“ = probíhá (první den <= dnes <= poslední), jinak „upcoming“."""
+    if not view:
+        return None
+    if view["to"] < today:
+        f = view.get("following")
+        if not f or f["to"] < today:
+            return None
+        view = {**view, **f, "items": [], "votes": None, "picks": [], "following": None}
+    return {**view, "status": "current" if view["from"] <= today <= view["to"] else "upcoming"}
+
+
+def heading(view: dict) -> str:
+    """„Probíhá zasedání“ / „Další zasedání“."""
+    return "Probíhá zasedání" if view.get("status") == "current" else "Další zasedání"
+
+
+def today_cz() -> str:
+    """Dnešní pražské datum (sestavení webu; prohlížeč totéž dopočítá v lib/format.js todayCZ)."""
+    return datetime.now(ZoneInfo("Europe/Prague")).date().isoformat()

@@ -96,6 +96,15 @@ def check(prev_dir: Path | None, data_dir: Path, today: str, seats: int = CZ_SEA
     return problems + p2 + p3, warnings + w2
 
 
+def group_conflict_notes(data_dir: Path) -> list[str]:
+    """Rozpory frakce HowTheyVote × EP (stats.json → sources.group_conflicts, ep_groups.py): jen výpis, ne chyba."""
+    stats = _load(data_dir / "stats.json") or {}
+    return [
+        f"frakce poslance {c['member_id']} {c['from']} – {c['to']}: HowTheyVote {c['htv']}, EP {c['ep']} ({c['votes']} hlasování), počítá se podle EP"
+        for c in (stats.get("sources") or {}).get("group_conflicts") or []
+    ]
+
+
 def check_speeches(prev_dir: Path | None, data_dir: Path) -> list[str]:
     """data/speeches.json (projevy v plénu z EP Open Data): počet záznamů nesmí klesnout a poslanec, který projevy měl,
     o ně nesmí přijít (projevy se zpětně nemažou, pokles znamená změnu formátu nebo výpadek API)."""
@@ -174,6 +183,7 @@ def main(argv=None) -> int:
     args = p.parse_args(argv)
     problems, warnings = check(args.prev, args.data, args.today)
     warnings += check_logos(args.data, args.public)
+    warnings += group_conflict_notes(args.data)
     for w in warnings:
         print(f"::warning title=Kontrola dat::{w}")
     if problems:

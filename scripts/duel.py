@@ -7,6 +7,8 @@ jen poslanci v mandátu k datu hlasování (active_positions) a jen hlasy pro, p
 
 from __future__ import annotations
 
+from ep_groups import short_group
+
 from collections import defaultdict
 from itertools import combinations
 
@@ -140,7 +142,13 @@ def build_duel(
         },
         "topics": [{"code": t["code"], "label": topic_labels.get(t["code"]) or t["label"]} for t in stats.get("topics", [])],
         "meps": [
-            {**summaries[m["id"]], "committees": current_committees(m, day), "metrics": mep_metrics(profiles[m["id"]])}
+            {
+                **summaries[m["id"]],
+                "committees": current_committees(m, day),
+                "metrics": mep_metrics(profiles[m["id"]]),
+                # ve frakci krátce: „proti většině frakce“ z malého vzorku (ep_groups.SHORT_GROUP_VOTES)
+                "group_short": short_group(m, profiles[m["id"]]["total"]["group_loyalty"]),
+            }
             for m in sorted(meps, key=lambda m: m.get("sort_label") or m["name"])
         ],
         "pairs": pairs,

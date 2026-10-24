@@ -24,6 +24,9 @@ import re
 import sys
 from pathlib import Path
 
+import requests
+
+from agenda import group_sessions
 from fetch_meps import EPClient, FormatError, require
 
 VOTE_TYPE = "def/ep-activities/PLENARY_VOTE"
@@ -44,20 +47,23 @@ def sittings_for_year(client: EPClient, year: int) -> list[str]:
     return sorted(days)
 
 
-def group_sessions(days: list[str], max_gap: int = 2) -> list[list[str]]:
-    """Plenární dny po sobě (mezera nejvýš max_gap dny) = jedno zasedání."""
-    out: list[list[str]] = []
-    for d in sorted(days):
-        if out and (dt.date.fromisoformat(d) - dt.date.fromisoformat(out[-1][-1])).days <= max_gap:
-            out[-1].append(d)
-        else:
-            out.append([d])
-    return out
-
-
 def next_session(days: list[str], today: str) -> list[str] | None:
     """Nejbližší zasedání, které ještě neskončilo (probíhající nebo budoucí)."""
     return next((s for s in group_sessions(days) if s[-1] >= today), None)
+
+
+def current_session(days: list[str], today: str) -> list[str] | None:
+    """Zasedání, které právě probíhá (první den <= dnes <= poslední den), jinak None."""
+    return next((s for s in group_sessions(days) if s[0] <= today <= s[-1]), None)
+
+
+def upcoming_session(days: list[str], after: str) -> list[str] | None:
+    """První zasedání, které začíná až po daném dni (bez programu může být jen z kalendáře)."""
+    return next((s for s in group_sessions(days) if s[0] > after), None)
+
+
+def span(session: list[str] | None) -> dict | None:
+    return {"from": session[0], "to": session[-1], "days": session} if session else None
 
 
 def vote_items(payload: dict, day: str) -> list[dict]:
@@ -99,8 +105,15 @@ def _short(uri) -> str | None:
 
 
 def report_meta(client: EPClient, doc_id: str) -> dict:
-    """Procedura a odpovědný výbor zprávy A-…: {procedure, committee}; co API nemá, je None."""
-    d = client.get(f"plenary-documents/{doc_id}", {"language": "cs"})
+    """Procedura a odpovědný výbor zprávy A-…: {procedure, committee}; co API nemá, je None.
+    Zpráva z programu ještě nemusí být v API (404, 23. 10. 2026 A-10-2026-0275): pak None a další běh to zkusí znovu."""
+    try:
+        d = client.get(f"plenary-documents/{doc_id}", {"language": "cs"})
+    except requests.HTTPError as e:
+        if getattr(e.response, "status_code", None) == 404:
+            print(f"VAROVÁNÍ: {doc_id} zatím v EP API není (404), procedura a výbor zůstávají null", file=sys.stderr)
+            return {"procedure": None, "committee": None}
+        raise
     require(d, ["data"], f"plenary-documents/{doc_id}")
     if not d["data"]:
         return {"procedure": None, "committee": None}
@@ -120,7 +133,10 @@ def build(client: EPClient, today: str, known_docs: dict | None = None) -> dict:
         days += sittings_for_year(client, year + 1)
     if not days:
         raise FormatError(f"EP API nevrátilo žádné plenární dny pro rok {year}")
+    # program se stahuje pro probíhající, jinak nejbližší další zasedání; status a following pro web (úkol 3, 24. 10. 2026)
     session = next_session(days, today)
+    status = "current" if session and current_session(days, today) == session else "upcoming"
+    following = upcoming_session(days, session[-1]) if session else None
     items: list[dict] = []
     if session:
         for d in session:
@@ -129,12 +145,15 @@ def build(client: EPClient, today: str, known_docs: dict | None = None) -> dict:
     for it in items:
         for d in it["docs"]:
             if d.startswith("A-") and d not in docs:
-                docs[d] = (known_docs or {}).get(d) or report_meta(client, d)
+                known = (known_docs or {}).get(d)
+                # zprávu bez procedury (ještě nebyla v API) zkusit znovu
+                docs[d] = known if known and known.get("procedure") else report_meta(client, d)
     return {
         "note": "Plenární dny a program hlasování nejbližšího zasedání (návrh programu EP, může se změnit). Generuje scripts/fetch_agenda.py.",
         "source": {"name": "EP Open Data API v2", "url": "https://data.europarl.europa.eu/api/v2/meetings", "license": "CC BY 4.0"},
         "sittings": sorted(set(days)),
-        "next": {"from": session[0], "to": session[-1], "days": session, "items": items} if session else None,
+        "next": {**span(session), "status": status, "items": items} if session else None,
+        "following": span(following),
         "docs": dict(sorted(docs.items())),
     }
 

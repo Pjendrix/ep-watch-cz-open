@@ -51,6 +51,54 @@ def test_group_and_next_session():
     assert fa.next_session(days, "2026-12-01") is None
 
 
+def test_current_and_upcoming_session_before_during_after():
+    days = ["2026-10-19", "2026-10-20", "2026-10-22", "2026-11-11", "2026-11-12"]
+    # před zasedáním, během, poslední den, den po posledním dni
+    assert fa.current_session(days, "2026-10-16") is None
+    assert fa.current_session(days, "2026-10-21") == ["2026-10-19", "2026-10-20", "2026-10-22"]
+    assert fa.current_session(days, "2026-10-22") == ["2026-10-19", "2026-10-20", "2026-10-22"]
+    assert fa.current_session(days, "2026-10-23") is None
+    assert fa.upcoming_session(days, "2026-10-21") == ["2026-11-11", "2026-11-12"]
+    assert fa.upcoming_session(days, "2026-10-16") == ["2026-10-19", "2026-10-20", "2026-10-22"]
+    assert fa.upcoming_session(days, "2026-11-12") is None
+
+
+def _view(frm="2026-10-19", to="2026-10-22", following=("2026-11-11", "2026-11-12")):
+    f = {"from": following[0], "to": following[1], "days": list(following)} if following else None
+    return {"from": frm, "to": to, "days": [frm, to], "votes": 28, "items": [], "picks": [], "status": "upcoming", "following": f}
+
+
+def test_effective_session_by_day():
+    assert ag.effective(_view(), "2026-10-16")["status"] == "upcoming"
+    during = ag.effective(_view(), "2026-10-21")
+    assert during["status"] == "current" and during["votes"] == 28 and ag.heading(during) == "Probíhá zasedání"
+    assert ag.effective(_view(), "2026-10-22")["status"] == "current"
+    after = ag.effective(_view(), "2026-10-23")  # den po posledním dni: další blok z kalendáře bez programu
+    assert (after["from"], after["to"], after["items"], after["votes"], after["status"]) == (
+        "2026-11-11",
+        "2026-11-12",
+        [],
+        None,
+        "upcoming",
+    )
+    assert ag.heading(after) == "Další zasedání"
+    assert ag.effective(_view(), "2026-10-24")["from"] == "2026-11-11"
+    assert ag.effective(_view(following=None), "2026-10-23") is None
+    assert ag.effective(None, "2026-10-23") is None
+
+
+def test_report_meta_404_is_null():
+    import requests
+
+    class Client:
+        def get(self, path, params=None):
+            r = requests.Response()
+            r.status_code = 404
+            raise requests.HTTPError("404", response=r)
+
+    assert fa.report_meta(Client(), "A-10-2026-0275") == {"procedure": None, "committee": None}
+
+
 def test_vote_items_only_votes_with_docs_and_order():
     first = act(1, "2026-10-20", docs=["A-10-2026-0213", "C-10-2026-0001"], order="12")
     first["occured_at_stage"] = "http://publications.europa.eu/resource/authority/procedure-phase/RDG1"
