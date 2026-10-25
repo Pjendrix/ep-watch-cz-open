@@ -67,7 +67,7 @@ def test_mep_metrics_null_when_source_missing_and_for_non_attached():
     }
     m = duel.mep_metrics(prof)
     assert m["against_group"] is None and m["reports"] is None and m["speeches"] is None and m["amendments"] is None
-    assert m["votes_in_mandate"] == 10 and m["decisive"] == 1
+    assert m["votes_in_mandate"] == 10
 
 
 @pytest.fixture(scope="module")

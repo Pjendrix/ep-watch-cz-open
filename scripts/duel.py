@@ -48,7 +48,6 @@ def mep_metrics(prof: dict) -> dict:
         "votes_in_mandate": t["attendance"][1],
         "positions": t["positions"],
         "against_group": [ag["count"], loyal_den] if loyal_den else None,
-        "decisive": len(prof.get("decisive") or []),
         "reports": count("report"),
         "shadow_reports": count("shadow_report"),
         "opinions": count("opinion"),
@@ -138,7 +137,7 @@ def build_duel(
         "definitions": {
             **{
                 k: stats["definitions"].get(k)
-                for k in ("attendance", "presence", "group_loyalty", "pairwise", "against_group", "decisive_votes", "own_work", "speeches")
+                for k in ("attendance", "presence", "group_loyalty", "pairwise", "against_group", "own_work", "speeches")
             },
             "amendments": AMENDMENTS_DEF,
         },
