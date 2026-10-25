@@ -9,7 +9,8 @@ Porovná nová data s předchozím stavem (záloha složky data/ před stažení
   - loga stran a frakcí (jen varování): logo bez zdroje v data/manual/logos.json, soubor větší než 60 kB,
     SVG s <script>, atributy on…= , javascript: nebo externím odkazem,
   - závěrečné hlasování bez českého názvu (jen varování; doplní ho scripts/title_translations.py),
-  - vyjádření poslanců v data/manual/statements.json (povinná pole, text do 300 znaků, známý poslanec).
+  - vyjádření poslanců v data/manual/statements.json (povinná pole, text do 300 znaků, známý poslanec),
+  - zlaté kontroly v data/manual/golden.json: ručně ověřená fakta (výsledky hlasování, členství ve výborech) musí sedět.
 Při chybě vypíše všechny problémy a skončí kódem 1, workflow pak nic necommitne.
 Varování se vypíší jako GitHub anotace (::warning::) a běh pokračuje.
 
@@ -105,6 +106,20 @@ def group_conflict_notes(data_dir: Path) -> list[str]:
         f"frakce poslance {c['member_id']} {c['from']} – {c['to']}: HowTheyVote {c['htv']}, EP {c['ep']} ({c['votes']} hlasování), počítá se podle EP"
         for c in (stats.get("sources") or {}).get("group_conflicts") or []
     ]
+
+
+def check_golden(data_dir: Path) -> list[str]:
+    """Zlaté kontroly (data/manual/golden.json, V18): ručně ověřená fakta musí sedět s daty."""
+    import golden
+
+    facts = golden.load(data_dir)
+    if not facts:
+        return []
+    from compute_stats import load_votes
+
+    votes = {v["id"]: v for v in load_votes(data_dir / "votes")[1]}
+    meps = {m["id"]: m for m in (_load(data_dir / "meps.json") or {}).get("meps") or []}
+    return golden.check(facts, votes, meps)
 
 
 def check_statements(data_dir: Path) -> list[str]:
@@ -210,6 +225,7 @@ def main(argv=None) -> int:
     args = p.parse_args(argv)
     problems, warnings = check(args.prev, args.data, args.today)
     problems += check_statements(args.data)
+    problems += check_golden(args.data)
     warnings += check_logos(args.data, args.public)
     warnings += group_conflict_notes(args.data)
     warnings += check_titles(args.data)
