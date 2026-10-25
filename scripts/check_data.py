@@ -7,7 +7,8 @@ Porovná nová data s předchozím stavem (záloha složky data/ před stažení
     je jen varování (uprázdněné místo, než nastoupí náhradník), jiný počet je chyba,
   - žádný poslanec 10. období nesmí ze seznamu zmizet,
   - loga stran a frakcí (jen varování): logo bez zdroje v data/manual/logos.json, soubor větší než 60 kB,
-    SVG s <script>, atributy on…= , javascript: nebo externím odkazem.
+    SVG s <script>, atributy on…= , javascript: nebo externím odkazem,
+  - závěrečné hlasování bez českého názvu (jen varování; doplní ho scripts/title_translations.py).
 Při chybě vypíše všechny problémy a skončí kódem 1, workflow pak nic necommitne.
 Varování se vypíší jako GitHub anotace (::warning::) a běh pokračuje.
 
@@ -105,6 +106,23 @@ def group_conflict_notes(data_dir: Path) -> list[str]:
     ]
 
 
+def check_titles(data_dir: Path) -> list[str]:
+    """Závěrečná hlasování, u kterých web ukáže anglický název (ani oficiální český, ani překlad AI)."""
+    if not (data_dir / "votes" / "index.json").exists():
+        return []
+    from compute_stats import FormatError, load_votes
+
+    try:
+        votes = load_votes(data_dir / "votes")[1]
+    except (FormatError, OSError) as e:
+        return [f"české názvy hlasování nejde zkontrolovat: {e}"]
+    return [
+        f"závěrečné hlasování {v['id']} ({v['date']}) nemá český název: {v.get('title')}; spusť scripts/title_translations.py"
+        for v in votes
+        if v.get("is_main") and not v.get("title_cs")
+    ]
+
+
 def check_speeches(prev_dir: Path | None, data_dir: Path) -> list[str]:
     """data/speeches.json (projevy v plénu z EP Open Data): počet záznamů nesmí klesnout a poslanec, který projevy měl,
     o ně nesmí přijít (projevy se zpětně nemažou, pokles znamená změnu formátu nebo výpadek API)."""
@@ -184,6 +202,7 @@ def main(argv=None) -> int:
     problems, warnings = check(args.prev, args.data, args.today)
     warnings += check_logos(args.data, args.public)
     warnings += group_conflict_notes(args.data)
+    warnings += check_titles(args.data)
     for w in warnings:
         print(f"::warning title=Kontrola dat::{w}")
     if problems:

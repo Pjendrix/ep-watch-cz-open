@@ -149,3 +149,24 @@ def test_amendments_must_not_drop(tmp_path):
     (new / "amendments.json").write_text(json.dumps(doc(9, 4, 1)))
     problems = cd.check_amendments(prev, new)
     assert len(problems) == 3 and "klesl z 10 na 9" in problems[0]
+
+
+def test_final_vote_without_czech_title_warns(tmp_path):
+    d = tmp_path / "data"
+    (d / "votes").mkdir(parents=True)
+    (d / "votes" / "index.json").write_text(json.dumps({"months": [{"month": "2024-11"}], "groups": [], "source": "MOCK"}))
+    votes = [
+        {"id": 1, "date": "2024-11-27", "is_main": True, "title": "MOCK Election of the Commission"},
+        {"id": 2, "date": "2024-11-27", "is_main": True, "title": "MOCK Objection", "procedure": {"reference": "2024/0001(RPS)"}},
+        {"id": 3, "date": "2024-11-27", "is_main": True, "title": "MOCK Translated"},
+        {"id": 4, "date": "2024-11-27", "is_main": False, "title": "MOCK Amendment 1"},
+    ]
+    (d / "votes" / "2024-11.json").write_text(json.dumps({"votes": votes}))
+    (d / "procedure_titles_cs.json").write_text(json.dumps({"titles": {"x": {"label": "2024/0001(RPS)", "title_cs": "MOCK Námitka"}}}))
+    (d / "title_translations.json").write_text(json.dumps({"items": {"3": {"title_cs": "MOCK Přeloženo", "title": "MOCK Translated"}}}))
+    w = cd.check_titles(d)
+    assert len(w) == 1 and "hlasování 1 " in w[0]
+    # překlad AI ke změněnému originálu se nepoužije
+    votes[2]["title"] = "MOCK Translated (changed)"
+    (d / "votes" / "2024-11.json").write_text(json.dumps({"votes": votes}))
+    assert len(cd.check_titles(d)) == 2

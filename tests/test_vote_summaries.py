@@ -59,9 +59,11 @@ def test_api_backend_uses_vote_prompt():
     calls = []
     api = SimpleNamespace(
         messages=SimpleNamespace(
-            create=lambda **kw: calls.append(kw)
-            or SimpleNamespace(
-                stop_reason="end_turn", content=[SimpleNamespace(type="text", text=json.dumps({"shrnuti": "Usnesení k Gruzii."}))]
+            create=lambda **kw: (
+                calls.append(kw)
+                or SimpleNamespace(
+                    stop_reason="end_turn", content=[SimpleNamespace(type="text", text=json.dumps({"shrnuti": "Usnesení k Gruzii."}))]
+                )
             )
         )
     )

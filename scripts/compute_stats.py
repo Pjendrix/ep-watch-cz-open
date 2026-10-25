@@ -290,6 +290,8 @@ def compute(meps: list[dict], votes: list[dict], topics: list[str] | None = None
     by_topic: dict[int, dict[str, dict]] = {i: {t: empty_metrics() for t in topics} for i in by_id}
     pairwise: dict[int, dict[int, list[int]]] = {i: defaultdict(lambda: [0, 0]) for i in by_id}
     against: dict[int, list[dict]] = {i: [] for i in by_id}
+    # O12: „hlasuje s frakcí“ po obdobích frakce (frakce k datu hlasování); u poslance se změnou frakce víc položek
+    group_periods: dict[int, list[dict]] = {i: [] for i in by_id}
     decisive: dict[int, list[dict]] = {i: [] for i in by_id}
     unknown = set()
 
@@ -307,6 +309,13 @@ def compute(meps: list[dict], votes: list[dict], topics: list[str] | None = None
             for t in vote_topics:
                 add_vote(by_topic[i][t], vote, p, others)
             gm = group_majority(majority_counts(vote), p["group_code"])
+            gp = group_periods[i]
+            if not gp or gp[-1]["group_code"] != p["group_code"]:
+                gp.append({"group_code": p["group_code"], "from": vote["date"], "to": vote["date"], "group_loyalty": [0, 0]})
+            gp[-1]["to"] = max(gp[-1]["to"], vote["date"])
+            if p["position"] in VOTED and gm is not None:
+                gp[-1]["group_loyalty"][1] += 1
+                gp[-1]["group_loyalty"][0] += p["position"] == gm
             if p["position"] in VOTED and gm is not None and p["position"] != gm:
                 pm = party_majority(p, active)
                 against[i].append(
@@ -350,6 +359,7 @@ def compute(meps: list[dict], votes: list[dict], topics: list[str] | None = None
                 "recent_main": [x for x in newest(against[i]) if x["is_final"]][:RECENT],
             },
             "decisive": newest(decisive[i]),
+            "group_periods": group_periods[i] if len(group_periods[i]) > 1 else [],
         }
         for i in sorted(by_id)
     }
@@ -679,12 +689,28 @@ def procedure_titles(data_dir: Path) -> dict[str, str]:
     return out
 
 
-def apply_titles(votes: list[dict], titles: dict[str, str]) -> None:
-    """Doplní k hlasování title_cs: oficiální český název procedury, o kterou jde (HowTheyVote má jen angličtinu)."""
+def ai_titles(data_dir: Path) -> dict[str, dict]:
+    """{id hlasování: {title_cs, title}} z data/title_translations.json (překlad AI u závěrečných hlasování bez
+    oficiálního českého názvu, scripts/title_translations.py). Bez souboru prázdný slovník."""
+    path = data_dir / "title_translations.json"
+    if not path.exists():
+        return {}
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    require(doc, ["items"], path.name)
+    for key, it in doc["items"].items():
+        require(it, ["title_cs", "title"], f"{path.name} {key}")
+    return doc["items"]
+
+
+def apply_titles(votes: list[dict], titles: dict[str, str], ai: dict[str, dict] | None = None) -> None:
+    """Doplní k hlasování title_cs: oficiální český název procedury, o kterou jde (HowTheyVote má jen angličtinu).
+    Když oficiální chybí, použije překlad AI (title_cs_ai: true), ale jen pokud se anglický originál nezměnil."""
     for v in votes:
         cs = titles.get((v.get("procedure") or {}).get("reference") or "")
         if cs:
             v["title_cs"] = cs
+        elif ai and (t := ai.get(str(v.get("id")))) and t["title"] == v.get("title"):
+            v["title_cs"], v["title_cs_ai"] = t["title_cs"], True
 
 
 def load_votes(votes_dir: Path) -> tuple[dict, list[dict]]:
@@ -698,7 +724,13 @@ def load_votes(votes_dir: Path) -> tuple[dict, list[dict]]:
         data = json.loads((votes_dir / f"{m['month']}.json").read_text(encoding="utf-8"))
         require(data, ["votes"], f"votes/{m['month']}.json")
         votes.extend(data["votes"])
-    apply_titles(votes, procedure_titles(votes_dir.parent))
+    apply_titles(votes, procedure_titles(votes_dir.parent), ai_titles(votes_dir.parent))
+    # český popis podle aktuálních pravidel labels_cs.py (starší soubory mají None u vzorů doplněných později)
+    from labels_cs import translate
+
+    for v in votes:
+        if not v.get("description_cs") and v.get("description"):
+            v["description_cs"] = translate(v["description"])
     # přijatý text podle EP Open Data (adopted_texts.py) má přednost před polem z HowTheyVote
     from adopted_texts import apply as apply_adopted
 

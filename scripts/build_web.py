@@ -41,7 +41,7 @@ from quiz_groups import build_quiz_groups
 from work_hub import build_work_hub
 from labels_cs import translate
 from overrides import apply_name_overrides
-from vote_kinds import KIND_LABELS, classify, is_final
+from vote_kinds import FINAL_KINDS, KIND_LABELS, classify, is_final
 
 RECENT_MAIN = 15
 LAST_SESSION_LIMIT = 50
@@ -99,7 +99,7 @@ def vote_title(v: dict) -> str:
 def kind_fields(v: dict) -> dict:
     """Typ hlasování a český popis; starší měsíční soubory pole nemají, dopočítají se stejnými pravidly."""
     kind, inverted = (v["vote_kind"], v.get("inverted", False)) if v.get("vote_kind") else classify(v)
-    desc_cs = v["description_cs"] if "description_cs" in v else translate(v.get("description"))
+    desc_cs = v.get("description_cs") or translate(v.get("description"))
     return {"vote_kind": kind, "is_final": is_final(v), "inverted": inverted, "description_cs": desc_cs}
 
 
@@ -336,6 +336,8 @@ def build_profile(
         "monthly": st["monthly"],
         "pairwise": pairwise,
         "recent_main_votes": recent_main_votes(mep, votes),
+        "group_periods": st.get("group_periods") or [],
+        "votes_to": max((v["date"] for v in votes), default=None),
         "benchmarks": mep_benchmarks(mep, votes, bench),
         "against_group": {
             "count": ag["count"],
@@ -924,6 +926,10 @@ def run(data_dir: Path, day: str) -> dict:
     lines = [json.dumps(r, ensure_ascii=False, separators=(",", ":")) for r in search["rows"]]
     head = json.dumps({k: v for k, v in search.items() if k != "rows"}, ensure_ascii=False, separators=(",", ":"))
     (data_dir / "votes" / "search.json").write_text(head[:-1] + ',"rows":[\n' + ",\n".join(lines) + "\n]}\n", encoding="utf-8")
+    # Jen závěrečná hlasování (O7): výchozí pohled /votes a hledání v nich bez stahování celého search.json (1,7 MB).
+    kind_at = search["fields"].index("vote_kind")
+    final = [ln for r, ln in zip(search["rows"], lines, strict=True) if r[kind_at] in FINAL_KINDS]
+    (data_dir / "votes" / "search-final.json").write_text(head[:-1] + ',"rows":[\n' + ",\n".join(final) + "\n]}\n", encoding="utf-8")
     # Témata (kategorie) všech hlasování pro detail vote.html: stejná funkce jako čip v seznamu (categories_for), jen neprázdné.
     write_json(
         data_dir / "vote_cats.json",
@@ -943,7 +949,7 @@ def run(data_dir: Path, day: str) -> dict:
                     {
                         ref: v["title_cs"]
                         for v in votes
-                        if v.get("title_cs")
+                        if v.get("title_cs") and not v.get("title_cs_ai")
                         for ref in [(v.get("procedure") or {}).get("reference")]
                         if ref
                     }.items()
