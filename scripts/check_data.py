@@ -8,7 +8,8 @@ Porovná nová data s předchozím stavem (záloha složky data/ před stažení
   - žádný poslanec 10. období nesmí ze seznamu zmizet,
   - loga stran a frakcí (jen varování): logo bez zdroje v data/manual/logos.json, soubor větší než 60 kB,
     SVG s <script>, atributy on…= , javascript: nebo externím odkazem,
-  - závěrečné hlasování bez českého názvu (jen varování; doplní ho scripts/title_translations.py).
+  - závěrečné hlasování bez českého názvu (jen varování; doplní ho scripts/title_translations.py),
+  - vyjádření poslanců v data/manual/statements.json (povinná pole, text do 300 znaků, známý poslanec).
 Při chybě vypíše všechny problémy a skončí kódem 1, workflow pak nic necommitne.
 Varování se vypíší jako GitHub anotace (::warning::) a běh pokračuje.
 
@@ -106,6 +107,14 @@ def group_conflict_notes(data_dir: Path) -> list[str]:
     ]
 
 
+def check_statements(data_dir: Path) -> list[str]:
+    """Vyjádření poslanců (data/manual/statements.json, V7): chybný záznam je chyba."""
+    import statements
+
+    meps = (_load(data_dir / "meps.json") or {}).get("meps") or []
+    return statements.validate(statements.load(data_dir), {m["id"] for m in meps})
+
+
 def check_titles(data_dir: Path) -> list[str]:
     """Závěrečná hlasování, u kterých web ukáže anglický název (ani oficiální český, ani překlad AI)."""
     if not (data_dir / "votes" / "index.json").exists():
@@ -200,6 +209,7 @@ def main(argv=None) -> int:
     p.add_argument("--public", type=Path, default=root / "public")
     args = p.parse_args(argv)
     problems, warnings = check(args.prev, args.data, args.today)
+    problems += check_statements(args.data)
     warnings += check_logos(args.data, args.public)
     warnings += group_conflict_notes(args.data)
     warnings += check_titles(args.data)
