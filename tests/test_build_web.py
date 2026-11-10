@@ -221,6 +221,7 @@ def test_decisive_splits_and_parties_files(data_dir):
     assert [p["id"] for p in idx["parties"]] == [20]  # nezávislí nejsou strana
     page = json.loads((data_dir / "parties" / "20.json").read_text(encoding="utf-8"))
     assert page["members"] == 2 and page["cohesion"] == [1, 2]
+    assert 0 <= page["members_now"] <= page["members"]  # kolik z nich je ve straně a v mandátu dnes
     assert page["splits"][0]["id"] == 2 and len(page["splits"][0]["positions"]) == 2
     assert not (data_dir / "parties" / "99.json").exists()
 

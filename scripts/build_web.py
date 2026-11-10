@@ -62,6 +62,7 @@ SEARCH_FIELDS = [
     "description_cs",
     "topics",
     "cats",
+    "procedure",  # číslo procedury (2025/0045(COD)): novináři hledají zákon podle něj (revize 10. 11. 2026)
 ]
 
 
@@ -143,6 +144,7 @@ def build_search(votes: list[dict], meps_by_id: dict, topic_labels: dict | None 
                 k["description_cs"],
                 sorted(topic_codes(v)),
                 categories_for(v),
+                (v.get("procedure") or {}).get("reference"),
             ]
         )
         used |= topic_codes(v)
@@ -632,6 +634,8 @@ def build_parties_web(
         summary = {
             **party,
             "members": len(members),
+            # kolik z nich je ve straně a v mandátu dnes: „Poslanců 2“ u strany, kterou oba opustili, mátlo (revize 10. 11. 2026)
+            "members_now": sum(1 for x in members if x["current"]),
             "total": st["total"],
             "cohesion": st["cohesion"],
             "cohesion_main": st["cohesion_main"],
